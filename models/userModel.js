@@ -21,10 +21,26 @@ const studentSchema = new mongoose.Schema(
 
 const userSchema = new mongoose.Schema(
   {
-    name: { type: String, required: true },
-    email: { type: String, required: true, unique: rue },
-    phone: { type: String },
-    password: { type: String, required: true },
+    name: {
+      type: String,
+      trim: true,
+      required: [true, 'Please enter your name'],
+    },
+    slug: {
+      type: String,
+      lowercase: true,
+    },
+    email: {
+      type: String,
+      required: [true, 'Please enter your email'],
+      unique: true,
+      lowercase: true,
+    },
+    phone: String,
+    password: {
+      type: String,
+      required: [true, 'Please enter your password'],
+    },
     role: {
       type: String,
       enum: ['student', 'teacher', 'admin'],
@@ -41,6 +57,7 @@ const userSchema = new mongoose.Schema(
   {
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
+    timestamps: true,
   }
 );
 
@@ -56,4 +73,6 @@ userSchema.pre('save', function (next) {
   next();
 });
 
-export default mongoose.model('User', userSchema);
+const User = mongoose.model('User', userSchema);
+
+module.exports = User;

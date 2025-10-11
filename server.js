@@ -7,6 +7,9 @@ const globalError = require('./middlewares/errorMiddleware');
 const dotenv = require('dotenv');
 dotenv.config({ path: './config.env' });
 
+//Routes
+const userRoutes = require('./routes/userRoutes');
+
 // Connect with db
 dbConnection();
 
@@ -18,6 +21,9 @@ if (process.env.NODE_ENV === 'development') {
   console.log(`mode: ${process.env.NODE_ENV}`);
 }
 app.use(express.json());
+
+//Mount Routes
+app.use('/api/v1/users', userRoutes);
 
 app.all('*sth', (req, res, next) => {
   next(new ApiError(`Can't find this route: ${req.originalUrl}`, 400));

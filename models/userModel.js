@@ -67,9 +67,9 @@ userSchema.pre('save', function (next) {
     return next(new Error('Teacher profile is required'));
   }
 
-  if (this.role === 'student' && !this.studentProfile) {
-    return next(new Error('Student profile is required'));
-  }
+  // if (this.role === 'student' && !this.studentProfile) {
+  //   return next(new Error('Student profile is required'));
+  // }
   next();
 });
 

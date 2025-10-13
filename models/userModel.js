@@ -62,16 +62,16 @@ const userSchema = new mongoose.Schema(
 );
 
 //Conditional validation logic
-userSchema.pre('save', function (next) {
-  if (this.role === 'teacher' && !this.teacherProfile) {
-    return next(new Error('Teacher profile is required'));
-  }
+// userSchema.pre('save', function (next) {
+//   if (this.role === 'teacher' && !this.teacherProfile) {
+//     return next(new Error('Teacher profile is required'));
+//   }
 
-  // if (this.role === 'student' && !this.studentProfile) {
-  //   return next(new Error('Student profile is required'));
-  // }
-  next();
-});
+//   if (this.role === 'student' && !this.studentProfile) {
+//     return next(new Error('Student profile is required'));
+//   }
+//   next();
+// });
 
 const User = mongoose.model('User', userSchema);
 

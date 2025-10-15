@@ -1,16 +1,37 @@
 const express = require('express');
 const {
+  createUserValidator,
+  getUserValidator,
+  updateUserValidator,
+  deleteUserValidator,
+  changePasswordValidator,
+} = require('../utils/validators/userValidator');
+const {
   createUser,
   updateUser,
   getUser,
   getAllUsers,
   deleteUser,
   uploadUserImg,
+  changePassword,
 } = require('../controllers/userService');
 
-const router = express.Router();
+const allowedTo = require('../controllers/auth');
 
-router.route('/').post(uploadUserImg, createUser).get(getAllUsers);
-router.route('/:id').get(getUser).patch(uploadUserImg, updateUser).delete(deleteUser);
+const protectFirebase = require('../middlewares/firebaseAuth');
+
+const router = express.Router();
+router.use(protectFirebase);
+router.put('/changeMyPassword/:id', changePasswordValidator, changePassword);
+
+router
+  .route('/')
+  .post(allowedTo('student', 'teacher'), uploadUserImg, createUserValidator, createUser)
+  .get(allowedTo('admin'), getAllUsers);
+router
+  .route('/:id')
+  .get(allowedTo('admin'), getUserValidator, getUser)
+  .patch(allowedTo('admin'), uploadUserImg, updateUserValidator, updateUser)
+  .delete(allowedTo('admin'), deleteUserValidator, deleteUser);
 
 module.exports = router;

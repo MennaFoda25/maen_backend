@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 
 const teacherSchema = new mongoose.Schema(
   {
@@ -37,10 +38,21 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
     },
     phone: String,
+    firebase_uid: {
+      type: String,
+      unique: true,
+      sparse: true, // allows some users to not have this field
+    },
+
     password: {
       type: String,
-      required: [true, 'Please enter your password'],
+      required: function () {
+        // 🔥 Only require password if the user is NOT from Firebase
+        return !this.firebase_uid;
+      },
+      select: false,
     },
+
     role: {
       type: String,
       enum: ['student', 'teacher', 'admin'],
@@ -61,18 +73,14 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-//Conditional validation logic
-// userSchema.pre('save', function (next) {
-//   if (this.role === 'teacher' && !this.teacherProfile) {
-//     return next(new Error('Teacher profile is required'));
-//   }
-
-//   if (this.role === 'student' && !this.studentProfile) {
-//     return next(new Error('Student profile is required'));
-//   }
-//   next();
-// });
-
+// Encrypt password before saving
+userSchema.pre('save', async function (next) {
+  if (!this.isModified('password')) {
+    return next();
+  }
+  this.password = await bcrypt.hash(this.password, 12);
+  next();
+});
 const User = mongoose.model('User', userSchema);
 
 module.exports = User;

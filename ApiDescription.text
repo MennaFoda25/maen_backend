@@ -1,0 +1,56 @@
+1- Users with admin role : http://localhost:3000/api/v1/users
+
+@route   POST  /api/v1/users
+
+
+-Create admin:
+--------------
+
+| Key               | Type | Value                                         |
+| ----------------- | ---- | --------------------------------------------- |
+| `name`            | Text | Admin User                                    |
+| `email`           | Text | [admin@example.com](mailto:admin@example.com) |
+| `phone`           | Text | +201112223334                                 |
+| `password`        | Text | 12345678                                      |
+| `role`            | Text | admin                                         |
+| `country`         | Text | Egypt                                         |
+| `language`        | Text | English                                       |
+| `currency`        | Text | USD                                           |
+| `profile_picture` | File | 📁 (choose an image file)                     |
+
+-Create teacher :
+-----------------
+
+| Key                     | Type | Value                                                       |
+| ----------------------- | ---- | ----------------------------------------------------------- |
+| `name`                  | Text | Omar Khaled                                                 |
+| `email`                 | Text | [omar_teacher@example.com](mailto:omar_teacher@example.com) |
+| `phone`                 | Text | +201098765432                                               |
+| `password`              | Text | 12345678                                                    |
+| `role`                  | Text | teacher                                                     |
+| `country`               | Text | Egypt                                                       |
+| `language`              | Text | Arabic                                                      |
+| `currency`              | Text | EGP                                                         |
+| `bio`                   | Text | Certified Quran tutor with 10+ years of experience.         |
+| `certificates`          | Text | Al-Azhar Certification, Ijazah                              |
+| `specialties`           | Text | Tajweed, Recitation                                         |
+| `hourly_rate`           | Text | 20                                                          |
+| `availability_schedule` | Text | Sunday,Tuesday,Thursday                                     |
+| `profile_picture`       | File | 📁 (choose an image file)                                   |
+
+-Create student :
+----------------
+| Key               | Type | Value                                                         |
+| ----------------- | ---- | ------------------------------------------------------------- |
+| `name`            | Text | Menna Ashraf                                                  |
+| `email`           | Text | [menna_student@example.com](mailto:menna_student@example.com) |
+| `phone`           | Text | +201234567890                                                 |
+| `password`        | Text | 12345678                                                      |
+| `role`            | Text | student                                                       |
+| `country`         | Text | Egypt                                                         |
+| `language`        | Text | Arabic                                                        |
+| `currency`        | Text | EGP                                                           |
+| `learning_goals`  | Text | Improve tajweed, memorize Juz Amma                            |
+| `current_level`   | Text | beginner                                                      |
+| `profile_picture` | File | 📁 (choose an image file)                                     |
+

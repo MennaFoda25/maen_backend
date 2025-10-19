@@ -25,7 +25,7 @@ const userSchema = new mongoose.Schema(
     name: {
       type: String,
       trim: true,
-      required: [true, 'Please enter your name'],
+     required: [true, 'Please enter your name'],
     },
     slug: {
       type: String,
@@ -57,6 +57,11 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: ['student', 'teacher', 'admin'],
       default: 'student',
+    },
+    status: {
+      type: String,
+      enum: ['active', 'inactive', 'pending'],
+      default: 'active',
     },
     country: { type: String },
     language: { type: String, default: 'en' },

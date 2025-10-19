@@ -9,6 +9,8 @@ dotenv.config({ path: './config.env' });
 
 //Routes
 const userRoutes = require('./routes/userRoutes');
+const teacherRequestRoutes = require('./routes/teacherRequestRoutes');
+const authRoutes = require('./routes/authRoutes')
 
 // Connect with db
 dbConnection();
@@ -24,6 +26,8 @@ app.use(express.json());
 
 //Mount Routes
 app.use('/api/v1/users', userRoutes);
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/teacherRequest', teacherRequestRoutes);
 
 app.all('*sth', (req, res, next) => {
   next(new ApiError(`Can't find this route: ${req.originalUrl}`, 400));
@@ -31,6 +35,7 @@ app.all('*sth', (req, res, next) => {
 
 //Global error handling middleware for express
 app.use(globalError);
+
 
 const PORT = process.env.PORT || 3000;
 

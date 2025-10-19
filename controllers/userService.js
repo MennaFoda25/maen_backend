@@ -159,3 +159,4 @@ exports.changePassword = asyncHandler(async (req, res, next) => {
     .status(200)
     .json({ status: 'success', message: 'Password changed successfully', data: user });
 });
+

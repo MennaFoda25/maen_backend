@@ -16,17 +16,18 @@ const {
   changePassword,
 } = require('../controllers/userService');
 
-const allowedTo = require('../controllers/auth');
+const {allowedTo} = require('../controllers/authServices');
 
 const protectFirebase = require('../middlewares/firebaseAuth');
 
 const router = express.Router();
+
 router.use(protectFirebase);
 router.put('/changeMyPassword/:id', changePasswordValidator, changePassword);
 
 router
   .route('/')
-  .post(allowedTo('student', 'teacher'), uploadUserImg, createUserValidator, createUser)
+  //.post(allowedTo('student', 'teacher'), uploadUserImg, createUserValidator, createUser)
   .get(allowedTo('admin'), getAllUsers);
 router
   .route('/:id')

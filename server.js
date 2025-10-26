@@ -3,6 +3,8 @@ const morgan = require('morgan');
 const dbConnection = require('./config/database');
 const ApiError = require('./utils/apiError');
 const globalError = require('./middlewares/errorMiddleware');
+const swaggerUi = require("swagger-ui-express");
+const swaggerDocument =  require("./config/swagger")
 
 const dotenv = require('dotenv');
 dotenv.config({ path: './config.env' });
@@ -11,6 +13,7 @@ dotenv.config({ path: './config.env' });
 const userRoutes = require('./routes/userRoutes');
 const teacherRequestRoutes = require('./routes/teacherRequestRoutes');
 const authRoutes = require('./routes/authRoutes')
+
 
 // Connect with db
 dbConnection();
@@ -28,6 +31,8 @@ app.use(express.json());
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/teacherRequest', teacherRequestRoutes);
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+console.log("Swagger UI available at http://localhost:3000/api-docs");
 
 app.all('*sth', (req, res, next) => {
   next(new ApiError(`Can't find this route: ${req.originalUrl}`, 400));

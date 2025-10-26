@@ -28,6 +28,8 @@
     "multer-storage-cloudinary": "^4.0.0",
     "sharp": "^0.34.4",
     "slugify": "^1.6.6",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
     "uuid": "^13.0.0"
   },
   "devDependencies": {

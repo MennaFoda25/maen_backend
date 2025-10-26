@@ -18,25 +18,41 @@
 | `currency`        | Text | USD                                           |
 | `profile_picture` | File | 📁 (choose an image file)                     |
 
+
+--------------------------------------------------------
+{{URL}}/api/v1/auth/register
+
 -Create teacher :
 -----------------
+{
+    "message": "Teacher account created and pending approval by admin",
+    "user": {
+        "name": "test",
+        "email": "test@google.com",
+        "firebaseUid": "nAj148bN86g6SZYY4cVLVfaXk0o1",
+        "role": "teacher",
+        "status": "pending",
+        "language": "en",
+        "currency": "EGP",
+        "teacherProfile": {
+            "bio": "Al-Azhar Certification, Ijazah ",
+            "certificates": [
+                "Tajweed, Recitation"
+            ],
+            "specialties": [
+                "Tajweed, Recitation"
+            ],
+            "availability_schedule": []
+        },
+        "_id": "68f8a5e2a758a0404eb8add0",
+        "createdAt": "2025-10-22T09:37:38.105Z",
+        "updatedAt": "2025-10-22T09:37:38.105Z",
+        "__v": 0,
+        "id": "68f8a5e2a758a0404eb8add0"
+    }
+}
 
-| Key                     | Type | Value                                                       |
-| ----------------------- | ---- | ----------------------------------------------------------- |
-| `name`                  | Text | Omar Khaled                                                 |
-| `email`                 | Text | [omar_teacher@example.com](mailto:omar_teacher@example.com) |
-| `phone`                 | Text | +201098765432                                               |
-| `password`              | Text | 12345678                                                    |
-| `role`                  | Text | teacher                                                     |
-| `country`               | Text | Egypt                                                       |
-| `language`              | Text | Arabic                                                      |
-| `currency`              | Text | EGP                                                         |
-| `bio`                   | Text | Certified Quran tutor with 10+ years of experience.         |
-| `certificates`          | Text | Al-Azhar Certification, Ijazah                              |
-| `specialties`           | Text | Tajweed, Recitation                                         |
-| `hourly_rate`           | Text | 20                                                          |
-| `availability_schedule` | Text | Sunday,Tuesday,Thursday                                     |
-| `profile_picture`       | File | 📁 (choose an image file)                                   |
+
 
 -Create student :
 ----------------
@@ -53,4 +69,29 @@
 | `learning_goals`  | Text | Improve tajweed, memorize Juz Amma                            |
 | `current_level`   | Text | beginner                                                      |
 | `profile_picture` | File | 📁 (choose an image file)                                     |
+
+{
+    "message": "Student account created",
+    "user": {
+        "name": "teststudent",
+        "email": "teststudent@gmail.com",
+        "firebaseUid": "rn2SGJMaihOGKYReZR0joIkpi9V2",
+        "role": "student",
+        "status": "active",
+        "language": "en",
+        "currency": "EGP",
+        "studentProfile": {
+            "learning_goals": [
+                "ta7fez"
+            ],
+            "current_level": "beginner"
+        },
+        "_id": "68f8ac28df9ea9337a8db2a9",
+        "createdAt": "2025-10-22T10:04:24.421Z",
+        "updatedAt": "2025-10-22T10:04:24.421Z",
+        "__v": 0,
+        "id": "68f8ac28df9ea9337a8db2a9"
+    }
+}
+
 

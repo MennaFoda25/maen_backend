@@ -2,16 +2,16 @@ const express = require('express');
 
 const {
   requestTobeTeacher,
-  reviewStudentReq,
+  reviewteacherReq,
   getAllTeacherRequests,
 } = require('../controllers/teacherRequestService');
 
-const { allowedTo } = require('../controllers/authServices');
+const  {allowedTo}  = require('../controllers/authServices');
 
-const authMiddleware = require('../middlewares/firebaseAuth');
+const {verifyFirebaseToken} = require('../middlewares/firebaseAuth');
 
 const router = express.Router();
-router.use(authMiddleware);
+router.use(verifyFirebaseToken);
 
 // Student creates request
 router.post('/', allowedTo('student', 'teacher'), requestTobeTeacher);
@@ -19,6 +19,6 @@ router.post('/', allowedTo('student', 'teacher'), requestTobeTeacher);
 router.get('/', allowedTo('admin'), getAllTeacherRequests);
 
 // Admin approves or rejects request
-router.patch('/:id', allowedTo('admin'), reviewStudentReq);
+router.patch('/:id', allowedTo('admin'), reviewteacherReq);
 
 module.exports = router;

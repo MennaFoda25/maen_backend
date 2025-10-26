@@ -15,7 +15,7 @@ const teacherSchema = new mongoose.Schema(
 const studentSchema = new mongoose.Schema(
   {
     learning_goals: [String],
-    current_level: [String],
+    current_level: String,
   },
   { _id: false }
 );
@@ -25,7 +25,7 @@ const userSchema = new mongoose.Schema(
     name: {
       type: String,
       trim: true,
-     required: [true, 'Please enter your name'],
+      required: [true, 'Please enter your name'],
     },
     slug: {
       type: String,
@@ -38,17 +38,18 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
     },
     phone: String,
-    firebase_uid: {
+    firebaseUid: {
       type: String,
       unique: true,
-      sparse: true, // allows some users to not have this field
+      index: true,
+      sparse: true, // allows non-firebase users to exist
     },
 
     password: {
       type: String,
       required: function () {
         // 🔥 Only require password if the user is NOT from Firebase
-        return !this.firebase_uid;
+        return !this.firebaseUid;
       },
       select: false,
     },

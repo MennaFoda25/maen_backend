@@ -4,57 +4,30 @@ const User = require('../models/userModel');
 const factory = require('./handlerFactory');
 const ApiError = require('../utils/apiError');
 const bcrypt = require('bcryptjs');
+const { decode } = require('jsonwebtoken');
 
 exports.uploadUserImg = uploadAndAttachUrl('profile_picture');
 
 // @desc    Create user
 // @route   POST  /api/v1/users
 // @access  Private/Admin
-exports.createUser = asyncHandler(async (req, res, next) => {
-  //1- Role based validation
+exports.createAdmin = asyncHandler(async (req,res,next)=>{
+   if (!req.firebase || !req.firebase.uid) return next(new ApiError('Missing Firebase token', 401));
+  const decoded = req.firebase
+  if(req.body.role === 'admin'){
+    const admin = await User.create({
+       firebaseUid: decoded.uid,
+      name: decoded.name || req.body.name,
+      email: decoded.email || req.body.email,
+      phone: decoded.phone || req.body.phone,
 
-  if (req.body.role === 'student') {
-    if (!req.body.learning_goals || !req.body.current_level) {
-      return next(
-        new ApiError(
-          'Student profile must include at least one learning goal and current level',
-          400
-        )
-      );
-    }
-
-    req.body.studentProfile = {
-      learning_goals: Array.isArray(req.body.learning_goals)
-        ? req.body.learning_goals
-        : [req.body.learning_goals],
-      current_level: Array.isArray(req.body.current_level)
-        ? req.body.current_level
-        : [req.body.current_level],
-    };
+      role:'admin',
+      status:'active'
+    })
+return res.status(201).json({message:'Admin create successfully',admin})
   }
 
-  if (req.body.role === 'teacher') {
-    if (!req.body.bio) {
-      return next(new ApiError('Teacher profile must include bio information', 400));
-    }
-    req.body.teacherProfile = {
-      bio: req.body.bio,
-      certificates: req.body.certificates ? req.body.certificates.split(',') : [],
-      specialties: req.body.specialties ? req.body.specialties.split(',') : [],
-      hourly_rate: req.body.hourly_rate || 0,
-      availability_schedule: req.body.availability_schedule
-        ? req.body.availability_schedule.split(',')
-        : [],
-    };
-  }
-
-  const document = await User.create(req.body);
-
-  res.status(201).json({ status: 'success', data: document });
-
-  //2- create user document
-  //3- respond
-});
+})
 
 // @desc    Update specific user
 // @route   PUT /api/v1/users/:id
@@ -159,4 +132,23 @@ exports.changePassword = asyncHandler(async (req, res, next) => {
     .status(200)
     .json({ status: 'success', message: 'Password changed successfully', data: user });
 });
+/**
+ * PUT /api/v1/admin/user/:id/suspend
+ * Body: { action: 'suspend'|'activate' }
+ */
+exports.suspendUser = asyncHandler(async (req, res, next) => {
+  const { status } = req.body;
 
+  if (!['inactive', 'active'].includes(status)) {
+    return next(new ApiError('Action must be either "suspend" or "activate"', 400));
+  }
+
+  const user = await User.findById(req.params.id);
+  if (!user) {
+    return next(new ApiError('User not found', 404));
+  }
+  user.status  = status;
+
+  await user.save();
+  res.json({ message: 'user status has changed susseccfully ', user });
+});

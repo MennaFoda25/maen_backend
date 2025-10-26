@@ -2,10 +2,18 @@ const mongoose = require('mongoose');
 
 const teacherRequestSchema = new mongoose.Schema(
   {
+    email: { type: String, required: true, lowerCase: true },
+    name: { type: String, required: true },
+    firebaseUid: { type: String, required: true, index: true },
+    teacherProfile: {
+      bio: { type: String },
+      certificates: [{ type: String }],
+      specialties: [{ type: String }],
+      hourly_rate: { type: Number },
+    },
     userId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: mongoose.Schema.ObjectId,
       ref: 'User',
-      required: [true, 'User Id is required'],
     },
     status: {
       type: String,

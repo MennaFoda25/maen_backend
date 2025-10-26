@@ -7,32 +7,33 @@ const {
   changePasswordValidator,
 } = require('../utils/validators/userValidator');
 const {
-  createUser,
+  createAdmin,
   updateUser,
   getUser,
   getAllUsers,
   deleteUser,
   uploadUserImg,
   changePassword,
+  suspendUser,
 } = require('../controllers/userService');
 
-const {allowedTo} = require('../controllers/authServices');
+const { allowedTo } = require('../controllers/authServices');
 
-const protectFirebase = require('../middlewares/firebaseAuth');
+const { verifyFirebaseToken } = require('../middlewares/firebaseAuth');
 
 const router = express.Router();
 
-router.use(protectFirebase);
+router.use(verifyFirebaseToken);
 router.put('/changeMyPassword/:id', changePasswordValidator, changePassword);
 
 router
   .route('/')
-  //.post(allowedTo('student', 'teacher'), uploadUserImg, createUserValidator, createUser)
+  .post( uploadUserImg, createUserValidator, createAdmin)
   .get(allowedTo('admin'), getAllUsers);
 router
   .route('/:id')
   .get(allowedTo('admin'), getUserValidator, getUser)
   .patch(allowedTo('admin'), uploadUserImg, updateUserValidator, updateUser)
   .delete(allowedTo('admin'), deleteUserValidator, deleteUser);
-
+router.put('/:id/suspend', verifyFirebaseToken, suspendUser);
 module.exports = router;

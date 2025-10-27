@@ -37,37 +37,12 @@ app.get('/swagger.json', (req, res) => {
 // Serve Swagger UI
 app.use('/api-docs', express.static(swaggerUiDist.getAbsoluteFSPath()));
 
-app.get('/api-docs', (req, res) => {
-  const swaggerUrl = '/swagger.json'; // URL to your JSON
-  res.send(`
-    <!DOCTYPE html>
-    <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <title>Swagger UI</title>
-        <link rel="stylesheet" type="text/css" href="./swagger-ui.css" />
-      </head>
-      <body>
-        <div id="swagger-ui"></div>
-        <script src="./swagger-ui-bundle.js"></script>
-        <script>
-          window.onload = () => {
-            const ui = SwaggerUIBundle({
-              url: "${swaggerUrl}",
-              dom_id: '#swagger-ui',
-              deepLinking: true,
-              presets: [
-                SwaggerUIBundle.presets.apis,
-                SwaggerUIBundle.SwaggerUIStandalonePreset
-              ],
-              layout: "BaseLayout"
-            });
-            window.ui = ui;
-          };
-        </script>
-      </body>
-    </html>
-  `);
+app.get("/", (req, res) => {
+  res.send({
+    status: "success",
+    message: "Maen Backend API is running",
+    docs: "/api-docs"
+  });
 });
 console.log('Swagger UI available at /api-docs');
 

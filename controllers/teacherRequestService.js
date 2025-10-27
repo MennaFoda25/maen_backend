@@ -66,7 +66,7 @@ exports.reviewteacherReq = asyncHandler(async (req, res, next) => {
     let user = await User.findOne({ email: teacherReq.email });
     if (user) {
       ((user.role = 'teacher'),
-        (user.status = 'active'),
+        (user.status = 'approved'),
         (user.teacherProfile = teacherReq.teacherProfile),
         await user.save());
     } else {
@@ -75,7 +75,7 @@ exports.reviewteacherReq = asyncHandler(async (req, res, next) => {
         email: teacherReq.email,
         name: teacherReq.name,
         role: 'teacher',
-        status: 'active',
+        status: 'approved',
         teacherProfile: teacherReq.teacherProfile,
       });
     }

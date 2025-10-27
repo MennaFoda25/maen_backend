@@ -2,4 +2,4 @@ node_modules/
 
 config.env
 
-service_accout/
+service_account/firebaseAdminConfig.json

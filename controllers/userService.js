@@ -3,31 +3,29 @@ const { uploadAndAttachUrl } = require('../middlewares/uploadImageMiddleware');
 const User = require('../models/userModel');
 const factory = require('./handlerFactory');
 const ApiError = require('../utils/apiError');
-const bcrypt = require('bcryptjs');
-const { decode } = require('jsonwebtoken');
+const admin = require('../config/firebase');
 
 exports.uploadUserImg = uploadAndAttachUrl('profile_picture');
 
 // @desc    Create user
 // @route   POST  /api/v1/users
 // @access  Private/Admin
-exports.createAdmin = asyncHandler(async (req,res,next)=>{
-   if (!req.firebase || !req.firebase.uid) return next(new ApiError('Missing Firebase token', 401));
-  const decoded = req.firebase
-  if(req.body.role === 'admin'){
+exports.createAdmin = asyncHandler(async (req, res, next) => {
+  if (!req.firebase || !req.firebase.uid) return next(new ApiError('Missing Firebase token', 401));
+  const decoded = req.firebase;
+  if (req.body.role === 'admin') {
     const admin = await User.create({
-       firebaseUid: decoded.uid,
+      firebaseUid: decoded.uid,
       name: decoded.name || req.body.name,
       email: decoded.email || req.body.email,
       phone: decoded.phone || req.body.phone,
 
-      role:'admin',
-      status:'active'
-    })
-return res.status(201).json({message:'Admin create successfully',admin})
+      role: 'admin',
+      status: 'active',
+    });
+    return res.status(201).json({ message: 'Admin create successfully', admin });
   }
-
-})
+});
 
 // @desc    Update specific user
 // @route   PUT /api/v1/users/:id
@@ -114,23 +112,16 @@ exports.deleteUser = factory.deleteOne(User);
 // @access  Private/Admin
 
 exports.changePassword = asyncHandler(async (req, res, next) => {
-  const user = await User.findByIdAndUpdate(
-    req.params.id,
-    {
-      password: await bcrypt.hash(req.body.password, 12),
-    },
-    {
-      new: true,
-    }
-  );
-
-  if (!user) {
-    return next(new ApiError('User not found', 404));
+  const firebaseUid = req.firebase?.uid;
+  if (!firebaseUid) return next(new ApiError('Missing Firebase token', 401));
+  const { newPassword } = req.body;
+  if (!newPassword) {
+    return next(new ApiError('New password is required', 400));
   }
 
-  return res
-    .status(200)
-    .json({ status: 'success', message: 'Password changed successfully', data: user });
+  await admin.auth().updateUser(firebaseUid, { password: newPassword });
+
+  return res.status(200).json({ status: 'success', message: 'Password changed successfully' });
 });
 /**
  * PUT /api/v1/admin/user/:id/suspend
@@ -147,7 +138,7 @@ exports.suspendUser = asyncHandler(async (req, res, next) => {
   if (!user) {
     return next(new ApiError('User not found', 404));
   }
-  user.status  = status;
+  user.status = status;
 
   await user.save();
   res.json({ message: 'user status has changed susseccfully ', user });

@@ -45,14 +45,14 @@ const userSchema = new mongoose.Schema(
       sparse: true, // allows non-firebase users to exist
     },
 
-    password: {
-      type: String,
-      required: function () {
-        // 🔥 Only require password if the user is NOT from Firebase
-        return !this.firebaseUid;
-      },
-      select: false,
-    },
+    // password: {
+    //   type: String,
+    //   required: function () {
+    //     // 🔥 Only require password if the user is NOT from Firebase
+    //     return !this.firebaseUid;
+    //   },
+    //   select: false,
+    // },
 
     role: {
       type: String,
@@ -61,7 +61,7 @@ const userSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['active', 'inactive', 'pending'],
+      enum: ['active', 'inactive', 'pending','rejected', 'approved'],
       default: 'active',
     },
     country: { type: String },
@@ -80,13 +80,13 @@ const userSchema = new mongoose.Schema(
 );
 
 // Encrypt password before saving
-userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) {
-    return next();
-  }
-  this.password = await bcrypt.hash(this.password, 12);
-  next();
-});
+// userSchema.pre('save', async function (next) {
+//   if (!this.isModified('password')) {
+//     return next();
+//   }
+//   this.password = await bcrypt.hash(this.password, 12);
+//   next();
+// });
 const User = mongoose.model('User', userSchema);
 
 module.exports = User;

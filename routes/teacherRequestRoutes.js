@@ -6,9 +6,9 @@ const {
   getAllTeacherRequests,
 } = require('../controllers/teacherRequestService');
 
-const  {allowedTo}  = require('../controllers/authServices');
+const { allowedTo } = require('../controllers/authServices');
 
-const {verifyFirebaseToken} = require('../middlewares/firebaseAuth');
+const { verifyFirebaseToken } = require('../middlewares/firebaseAuth');
 
 const router = express.Router();
 router.use(verifyFirebaseToken);

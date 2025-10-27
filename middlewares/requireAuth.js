@@ -1,5 +1,5 @@
 const asyncHandler = require('express-async-handler');
-const ApiError = require('../utils/apiError');
+const ApiError = require('../../utils/apiError');
 
 const requireAuth = asyncHandler(async (req, res, next) => {
   if (!req.user) return next(new ApiError('You are not logged in', 401));

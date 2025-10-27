@@ -2,14 +2,13 @@ const asyncHandler = require('express-async-handler');
 const ApiError = require('../utils/apiError');
 const ApiFeatures = require('../utils/apiFeatures');
 
-exports.createOne = (Model) => 
+exports.createOne = (Model) =>
   asyncHandler(async (req, res, next) => {
     const document = await Model.create(req.body);
     res.status(201).json({ data: document });
   });
 
-
-exports.updateOne = (Model) => 
+exports.updateOne = (Model) =>
   asyncHandler(async (req, res, next) => {
     const document = await Model.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -21,8 +20,7 @@ exports.updateOne = (Model) =>
     res.status(200).json({ data: document });
   });
 
-
-exports.getAll = (Model) => 
+exports.getAll = (Model) =>
   asyncHandler(async (req, res, next) => {
     const documentsCounts = await Model.countDocuments();
 
@@ -39,8 +37,7 @@ exports.getAll = (Model) =>
     res.status(200).json({ results: documents.length, paginateResult, data: documents });
   });
 
-
-exports.getOne = (Model) => 
+exports.getOne = (Model) =>
   asyncHandler(async (req, res, next) => {
     const { id } = req.params;
     const document = await Model.findById(id);
@@ -51,8 +48,7 @@ exports.getOne = (Model) =>
     res.status(200).json({ data: document });
   });
 
-
-exports.deleteOne = (Model) => 
+exports.deleteOne = (Model) =>
   asyncHandler(async (req, res, next) => {
     const { id } = req.params;
     const document = await Model.findByIdAndDelete(id);
@@ -62,4 +58,3 @@ exports.deleteOne = (Model) =>
     }
     res.status(204).send();
   });
-

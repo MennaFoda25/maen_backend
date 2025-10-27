@@ -32,8 +32,8 @@ exports.firstLogin = asyncHandler(async (req, res, next) => {
       name:
         decoded.name || req.body.name || (decoded.email ? decoded.email.split('@')[0] : 'NoName'),
       firebaseUid: decoded.uid,
-      profile_picture: decoded.picture ||req.body.profile_picture || undefined,
-      teacherProfile :  JSON.parse(req.body.teacherProfile),
+      profile_picture: decoded.picture || req.body.profile_picture || undefined,
+      teacherProfile: JSON.parse(req.body.teacherProfile),
       status: 'pending',
     });
 
@@ -70,12 +70,11 @@ exports.firstLogin = asyncHandler(async (req, res, next) => {
     firebaseUid: decoded.uid,
     email: decoded.email || req.body.email,
     name: decoded.name || req.body.name || (decoded.email ? decoded.email.split('@')[0] : 'NoName'),
-    profile_picture: decoded.picture ||req.body.profile_picture || undefined,
+    profile_picture: decoded.picture || req.body.profile_picture || undefined,
     role: decoded.role,
     status: 'active',
-    studentProfile:JSON.parse(req.body.studentProfile) || undefined,
+    studentProfile: JSON.parse(req.body.studentProfile) || undefined,
   });
-
 
   return res.status(201).json({ message: 'Account created', user });
 });

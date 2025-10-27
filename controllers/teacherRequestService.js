@@ -2,7 +2,7 @@ const asyncHandler = require('express-async-handler');
 const ApiError = require('../utils/apiError');
 const TeacherRequest = require('../models/teacherRequestModel');
 const User = require('../models/userModel');
-const factory = require('./handlerFactory');
+const factory = require('../controllers/handlerFactory');
 
 // @desc    Student requests to become a teacher
 // @route   POST /api/v1/teacher-requests

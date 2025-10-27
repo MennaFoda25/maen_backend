@@ -1,10 +1,9 @@
 const express = require('express');
 const morgan = require('morgan');
 const dbConnection = require('./config/database');
+const ApiError = require('./utils/apiError')
 const globalError = require('./middlewares/errorMiddleware');
 const swaggerDocument = require('./config/swagger');
-const swaggerUiDist = require('swagger-ui-dist');
-const path = require('path');
 
 const dotenv = require('dotenv');
 dotenv.config({ path: './config.env' });
@@ -40,9 +39,9 @@ app.get("/", (req, res) => {
     docs: "/api-docs"
   });
 });
-app.all('*sth', (req, res, next) => {
-  next(new ApiError(`Can't find this route: ${req.originalUrl}`, 400));
-});
+// app.all('*sth', (req, res, next) => {
+//   next(new ApiError(`Can't find this route: ${req.originalUrl}`, 400));
+// });
 
 //Global error handling middleware for express
 app.use(globalError);

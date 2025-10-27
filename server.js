@@ -30,53 +30,16 @@ app.use(express.json());
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/teacherRequest', teacherRequestRoutes);
-app.get('/swagger.json', (req, res) => {
-  res.json(swaggerDocument);
-});
-
-// Serve Swagger UI
-//app.use('/api-docs', express.static(swaggerUiDist.getAbsoluteFSPath()));
-app.use(
-  '/swagger-ui.css',
-  express.static(path.join(swaggerUiDist.getAbsoluteFSPath(), 'swagger-ui.css'))
-);
-app.use(
-  '/swagger-ui-bundle.js',
-  express.static(path.join(swaggerUiDist.getAbsoluteFSPath(), 'swagger-ui-bundle.js'))
-);
-
-app.get('/api-docs', (req, res) => {
-  res.send(`
-    <!DOCTYPE html>
-    <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <title>Swagger UI</title>
-        <link rel="stylesheet" type="text/css" href="/swagger-ui.css" />
-      </head>
-      <body>
-        <div id="swagger-ui"></div>
-        <script src="/swagger-ui-bundle.js"></script>
-        <script>
-          window.onload = () => {
-            SwaggerUIBundle({
-              url: '/swagger.json',       // your JSON endpoint
-              dom_id: '#swagger-ui',
-              deepLinking: true,
-              presets: [
-                SwaggerUIBundle.presets.apis,
-                SwaggerUIBundle.SwaggerUIStandalonePreset
-              ],
-              layout: "BaseLayout"
-            });
-          };
-        </script>
-      </body>
-    </html>
-  `);
-});
+// Serve Swagger UI (automatic with CSS/JS)
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 console.log('Swagger UI available at /api-docs');
-
+app.get("/", (req, res) => {
+  res.send({
+    status: "success",
+    message: "Maen Backend API is running",
+    docs: "/api-docs"
+  });
+});
 app.all('*sth', (req, res, next) => {
   next(new ApiError(`Can't find this route: ${req.originalUrl}`, 400));
 });

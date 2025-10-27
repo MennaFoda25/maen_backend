@@ -30,7 +30,7 @@ app.use(express.json());
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/teacherRequest', teacherRequestRoutes);
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument, { explorer: true }));
 console.log("Swagger UI available at /api-docs");
 
 // app.all('*sth', (req, res, next) => {

@@ -37,7 +37,7 @@ module.exports = {
   },
   servers: [  {
         url:   process.env.BASE_URL || 'http://localhost:3000' }],
-        apis:['./routes/*.js'],
+       // apis:['./routes/*.js'],
   components: {
     securitySchemes: {
       bearerAuth: {

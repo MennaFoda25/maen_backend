@@ -1,7 +1,6 @@
 const express = require('express');
 const morgan = require('morgan');
 const dbConnection = require('./config/database');
-const ApiError = require('./utils/apiError');
 const globalError = require('./middlewares/errorMiddleware');
 const swaggerUi = require("swagger-ui-express");
 const swaggerDocument =  require("./config/swagger")
@@ -32,21 +31,29 @@ app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/teacherRequest', teacherRequestRoutes);
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-console.log("Swagger UI available at http://localhost:3000/api-docs");
+console.log("Swagger UI available at /api-docs");
 
-app.all('*sth', (req, res, next) => {
-  next(new ApiError(`Can't find this route: ${req.originalUrl}`, 400));
-});
+// app.all('*sth', (req, res, next) => {
+//   next(new ApiError(`Can't find this route: ${req.originalUrl}`, 400));
+// });
 
 //Global error handling middleware for express
 app.use(globalError);
 
 
-const PORT = process.env.PORT || 3000;
+// const PORT = process.env.PORT || 3000;
 
-const server = app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+// const server = app.listen(PORT, () => {
+//   console.log(`Server is running on port ${PORT}`);
+// });
+module.exports = app;
+// Optional: Keep for local dev (won't run on Vercel)
+if (require.main === module) {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+  });
+}
 
 //Handle errors outside express
 process.on('unhandledRejection', (err) => {

@@ -2,8 +2,9 @@ const express = require('express');
 const morgan = require('morgan');
 const dbConnection = require('./config/database');
 const globalError = require('./middlewares/errorMiddleware');
-const swaggerUi = require("swagger-ui-express");
-const swaggerDocument =  require("./config/swagger")
+const swaggerDocument = require('./config/swagger');
+const swaggerUiDist = require('swagger-ui-dist');
+const swaggerDocument = require('./config/swagger');
 
 const dotenv = require('dotenv');
 dotenv.config({ path: './config.env' });
@@ -11,8 +12,7 @@ dotenv.config({ path: './config.env' });
 //Routes
 const userRoutes = require('./routes/userRoutes');
 const teacherRequestRoutes = require('./routes/teacherRequestRoutes');
-const authRoutes = require('./routes/authRoutes')
-
+const authRoutes = require('./routes/authRoutes');
 
 // Connect with db
 dbConnection();
@@ -30,8 +30,46 @@ app.use(express.json());
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/teacherRequest', teacherRequestRoutes);
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument, { explorer: true }));
-console.log("Swagger UI available at /api-docs");
+app.get('/swagger.json', (req, res) => {
+  res.json(swaggerDocument);
+});
+
+// Serve Swagger UI
+app.use('/api-docs', express.static(swaggerUiDist.getAbsoluteFSPath()));
+
+app.get('/api-docs', (req, res) => {
+  const swaggerUrl = '/swagger.json'; // URL to your JSON
+  res.send(`
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <title>Swagger UI</title>
+        <link rel="stylesheet" type="text/css" href="./swagger-ui.css" />
+      </head>
+      <body>
+        <div id="swagger-ui"></div>
+        <script src="./swagger-ui-bundle.js"></script>
+        <script>
+          window.onload = () => {
+            const ui = SwaggerUIBundle({
+              url: "${swaggerUrl}",
+              dom_id: '#swagger-ui',
+              deepLinking: true,
+              presets: [
+                SwaggerUIBundle.presets.apis,
+                SwaggerUIBundle.SwaggerUIStandalonePreset
+              ],
+              layout: "BaseLayout"
+            });
+            window.ui = ui;
+          };
+        </script>
+      </body>
+    </html>
+  `);
+});
+console.log('Swagger UI available at /api-docs');
 
 // app.all('*sth', (req, res, next) => {
 //   next(new ApiError(`Can't find this route: ${req.originalUrl}`, 400));
@@ -39,7 +77,6 @@ console.log("Swagger UI available at /api-docs");
 
 //Global error handling middleware for express
 app.use(globalError);
-
 
 // const PORT = process.env.PORT || 3000;
 

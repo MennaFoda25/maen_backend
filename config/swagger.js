@@ -35,7 +35,10 @@ module.exports = {
     description:
       'API docs for Quraan Tutor backend. NOTE: Authentication uses Firebase ID tokens — get an idToken from Firebase and paste it into the Authorize dialog as `Bearer <idToken>`.',
   },
-  servers: [{ url: 'http://localhost:3000/api/v1', description: 'Local server' }],
+  servers: [  {
+        url: process.env.NODE_ENV === 'production' 
+          ? 'https://maen-backend.vercel.app/'  // Update with actual URL
+          : 'http://localhost:3000' }],
   components: {
     securitySchemes: {
       bearerAuth: {

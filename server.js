@@ -62,10 +62,11 @@ app.use(globalError);
 module.exports = app;
 
 // ✅ Only start local server when not on Vercel
-if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+//if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
   const PORT = process.env.PORT || 3000;
   const server = app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
+  
   });
 
   process.on('unhandledRejection', (err) => {
@@ -75,5 +76,5 @@ if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
       process.exit(1);
     });
   });
-}
+//}
 

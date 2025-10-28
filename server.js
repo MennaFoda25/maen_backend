@@ -1,9 +1,11 @@
 const express = require('express');
 const morgan = require('morgan');
 const dbConnection = require('./config/database');
-const ApiError = require('./utils/apiError')
+const cors = require('cors');
+const ApiError = require('./utils/apiError');
 const globalError = require('./middlewares/errorMiddleware');
 const swaggerDocument = require('./config/swagger');
+const swaggerUi = require('swagger-ui-express');
 
 const dotenv = require('dotenv');
 dotenv.config({ path: './config.env' });
@@ -23,6 +25,7 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
   console.log(`mode: ${process.env.NODE_ENV}`);
 }
+app.use(cors());
 app.use(express.json());
 
 //Mount Routes
@@ -32,11 +35,20 @@ app.use('/api/v1/teacherRequest', teacherRequestRoutes);
 // Serve Swagger UI (automatic with CSS/JS)
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 console.log('Swagger UI available at /api-docs');
-app.get("/", (req, res) => {
+app.get('/', (req, res) => {
   res.send({
-    status: "success",
-    message: "Maen Backend API is running",
-    docs: "/api-docs"
+    status: 'success',
+    message: 'Maen Backend API is running',
+    docs: '/api-docs',
+  });
+});
+
+// Health check endpoint (important for Vercel)
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
   });
 });
 // app.all('*sth', (req, res, next) => {
@@ -46,25 +58,29 @@ app.get("/", (req, res) => {
 //Global error handling middleware for express
 app.use(globalError);
 
+app.all('*', (req, res, next) => {
+  next(new ApiError(`Can't find this route: ${req.originalUrl}`, 404));
+});
+
 // const PORT = process.env.PORT || 3000;
 
 // const server = app.listen(PORT, () => {
 //   console.log(`Server is running on port ${PORT}`);
 // });
 module.exports = app;
-// Optional: Keep for local dev (won't run on Vercel)
-if (require.main === module) {
+// Only start server if not in Vercel environment
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
   const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
   });
-}
 
-//Handle errors outside express
-process.on('unhandledRejection', (err) => {
-  console.error(`Unhandled Rejection Errors: ${err.name}| ${err.message}`);
-  server.close(() => {
-    console.error('Shutting down.... Bye');
-    process.exit(1);
+  //Handle errors outside express
+  process.on('unhandledRejection', (err) => {
+    console.error(`Unhandled Rejection Errors: ${err.name}| ${err.message}`);
+    server.close(() => {
+      console.error('Shutting down.... Bye');
+      process.exit(1);
+    });
   });
-});
+}

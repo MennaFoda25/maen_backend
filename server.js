@@ -51,36 +51,29 @@ app.get('/health', (req, res) => {
     environment: process.env.NODE_ENV || 'development',
   });
 });
-// app.all('*sth', (req, res, next) => {
-//   next(new ApiError(`Can't find this route: ${req.originalUrl}`, 400));
-// });
-
-//Global error handling middleware for express
-app.use(globalError);
-
-app.all('*', (req, res, next) => {
-  next(new ApiError(`Can't find this route: ${req.originalUrl}`, 404));
+app.all('*sth', (req, res, next) => {
+  next(new ApiError(`Can't find this route: ${req.originalUrl}`, 400));
 });
 
-// const PORT = process.env.PORT || 3000;
+// Global error handling middleware
+app.use(globalError);
 
-// const server = app.listen(PORT, () => {
-//   console.log(`Server is running on port ${PORT}`);
-// });
+// ✅ Export the app for Vercel serverless
 module.exports = app;
-// Only start server if not in Vercel environment
-if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+
+// ✅ Only start local server when not on Vercel
+if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
   const PORT = process.env.PORT || 3000;
   const server = app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
   });
 
-  //Handle errors outside express
   process.on('unhandledRejection', (err) => {
-    console.error(`Unhandled Rejection Errors: ${err.name}| ${err.message}`);
+    console.error(`Unhandled Rejection Errors: ${err.name} | ${err.message}`);
     server.close(() => {
       console.error('Shutting down.... Bye');
       process.exit(1);
     });
   });
 }
+

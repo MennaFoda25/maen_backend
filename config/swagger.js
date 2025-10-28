@@ -37,9 +37,7 @@ module.exports = {
   },
   servers: [
     {
-      url: process.env.NODE_ENV === 'production' 
-        ? (process.env.BASE_URL || 'https://maen-backend-l8sp145aw-mennas-projects-67d13a7e.vercel.app')
-        : 'http://localhost:3000/api/v1',
+     url: process.env.BASE_URL || 'http://localhost:3000',
       description: process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server'
     }
   ],

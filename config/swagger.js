@@ -37,7 +37,7 @@ module.exports = {
   },
   servers: [
     {
-     url: process.env.BASE_URL || 'http://localhost:3000',
+    url: "https://maen-backend.onrender.com/api/v1",
       description: process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server'
     }
   ],

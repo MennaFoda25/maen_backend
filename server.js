@@ -9,14 +9,13 @@ const swaggerUi = require('swagger-ui-express');
 
 const dotenv = require('dotenv');
 dotenv.config({ path: './config.env' });
+// Connect with db
+dbConnection();
 
 //Routes
 const userRoutes = require('./routes/userRoutes');
 const teacherRequestRoutes = require('./routes/teacherRequestRoutes');
 const authRoutes = require('./routes/authRoutes');
-
-// Connect with db
-dbConnection();
 
 const app = express();
 
@@ -25,16 +24,23 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
   console.log(`mode: ${process.env.NODE_ENV}`);
 }
-app.use(cors());
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 
 //Mount Routes
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/teacherRequest', teacherRequestRoutes);
+
+
 // Serve Swagger UI (automatic with CSS/JS)
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 console.log('Swagger UI available at /api-docs');
+
 app.get('/', (req, res) => {
   res.send({
     status: 'success',
@@ -51,7 +57,7 @@ app.get('/health', (req, res) => {
     environment: process.env.NODE_ENV || 'development',
   });
 });
-app.all('*sth', (req, res, next) => {
+app.all('*', (req, res, next) => {
   next(new ApiError(`Can't find this route: ${req.originalUrl}`, 400));
 });
 
@@ -59,22 +65,20 @@ app.all('*sth', (req, res, next) => {
 app.use(globalError);
 
 // ✅ Export the app for Vercel serverless
-module.exports = app;
+//module.exports = app;
 
 // ✅ Only start local server when not on Vercel
 //if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
-  const PORT = process.env.PORT || 3000;
-  const server = app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-  
-  });
+const PORT = process.env.PORT || 3000;
+const server = app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
 
-  process.on('unhandledRejection', (err) => {
-    console.error(`Unhandled Rejection Errors: ${err.name} | ${err.message}`);
-    server.close(() => {
-      console.error('Shutting down.... Bye');
-      process.exit(1);
-    });
+process.on('unhandledRejection', (err) => {
+  console.error(`Unhandled Rejection Errors: ${err.name} | ${err.message}`);
+  server.close(() => {
+    console.error('Shutting down.... Bye');
+    process.exit(1);
   });
+});
 //}
-

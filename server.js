@@ -57,9 +57,10 @@ app.get('/health', (req, res) => {
     environment: process.env.NODE_ENV || 'development',
   });
 });
-app.all('/*', (req, res, next) => {
-  next(new ApiError(`Can't find this route: ${req.originalUrl}`, 400));
+app.use((req, res, next) => {
+  next(new ApiError(`Can't find this route: ${req.originalUrl}`, 404));
 });
+
 
 // Global error handling middleware
 app.use(globalError);

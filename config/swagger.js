@@ -1,32 +1,5 @@
-// const swaggerJSDocs = require('swagger-jsdoc');
-// const swaggerUi = require('swagger-ui-express');
+const CorrectionProgram = require('../models/correctionProgramModel');
 
-// const options = {
-//   definition: {
-//     openapi: '3.0.0',
-//     info: {
-//       title: 'Moeen API',
-//       version: '1.0.0',
-//       description: 'Backend API Documentationfor Moeen',
-//     },
-//     servers: [
-//       {
-//         url: 'http://localhost:3000/api/v1',
-//       },
-//     ],
-//   },
-//   apis: ['./routes/*.js'],
-// };
-
-// const swaggerSpec = swaggerJSDocs(options);
-
-// function swaggerDocs(app) {
-//   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-//   console.log('📌 Swagger Docs available at: http://localhost:3000/api-docs');
-// }
-
-// module.exports = swaggerDocs;
-// config/swaggerDocument.js
 module.exports = {
   openapi: '3.0.0',
   info: {
@@ -37,9 +10,12 @@ module.exports = {
   },
   servers: [
     {
-    url: "https://maen-backend.onrender.com/api/v1",
-      description: process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server'
-    }
+      // url: 'http://localhost:3000/api/v1',
+      url: 'https://maen-backend.onrender.com/api/v1',
+      // description: 'local dev server',
+      description:
+        process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server',
+    },
   ],
   components: {
     securitySchemes: {
@@ -107,6 +83,29 @@ module.exports = {
           status: { type: 'string', example: 'pending' },
           createdAt: { type: 'string', format: 'date-time' },
           updatedAt: { type: 'string', format: 'date-time' },
+        },
+      },
+      CorrectionProgram: {
+        type: 'object',
+        properties: {
+          assignedTeacher: { $ref: '#/components/schemas/TeacherProfile' },
+          goal: {
+            type: 'String',
+            example:
+              'general_mistakes or hidden_mistakes or ijazah_preparation or performance_development',
+          },
+          currentLevel: { type: 'String', example: 'beginner or intermediate or advanced' },
+          sessionsPerWeek: { type: 'Number', example: '1 , 2,3,4,5' },
+          sessionDuration: { type: 'Number', example: '15,30,45,60' },
+          preferredTimes: { type: 'array', example: '6-9_am' },
+          Days: { type: 'array', example: 'sunday , monday' },
+          planName: { type: 'String' },
+          fromSurah: { type: 'String' },
+          toSurah: { type: 'String' },
+          audioReferences: { type: 'String' },
+          pagesPerSession: { type: 'Number' },
+          totalPages: { type: 'Number' },
+          completedPages: { type: 'Number' },
         },
       },
       RegisterStudentResponse: {
@@ -410,55 +409,55 @@ module.exports = {
           },
         },
       },
-    //   patch: {
-    //     tags: ['Admin'],
-    //     summary: 'Update user data (admin only)',
-    //     security: [{ bearerAuth: [] }],
-    //     parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-    //     requestBody: {
-    //       required: true,
-    //       content: {
-    //         'application/json': {
-    //           schema: {
-    //             type: 'object',
-    //             properties: {
-    //               name: { type: 'string' },
-    //               email: { type: 'string' },
-    //               role: { type: 'string', enum: ['student', 'teacher', 'admin'] },
-    //             },
-    //           },
-    //         },
-    //       },
-    //     },
-    //     responses: {
-    //       200: {
-    //         description: 'User updated successfully',
-    //         content: {
-    //           'application/json': {
-    //             schema: { $ref: '#/components/schemas/UserShort' },
-    //           },
-    //         },
-    //       },
-    //       401: {
-    //         description: 'Unauthorized',
-    //         content: {
-    //           'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } },
-    //         },
-    //       },
-    //       403: {
-    //         description: 'Forbidden (admin only)',
-    //         content: {
-    //           'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } },
-    //         },
-    //       },
-    //       404: {
-    //         description: 'User not found',
-    //         content: {
-    //           'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } },
-    //         },
-    //       },
-    //     },
-    //   },
+      //   patch: {
+      //     tags: ['Admin'],
+      //     summary: 'Update user data (admin only)',
+      //     security: [{ bearerAuth: [] }],
+      //     parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+      //     requestBody: {
+      //       required: true,
+      //       content: {
+      //         'application/json': {
+      //           schema: {
+      //             type: 'object',
+      //             properties: {
+      //               name: { type: 'string' },
+      //               email: { type: 'string' },
+      //               role: { type: 'string', enum: ['student', 'teacher', 'admin'] },
+      //             },
+      //           },
+      //         },
+      //       },
+      //     },
+      //     responses: {
+      //       200: {
+      //         description: 'User updated successfully',
+      //         content: {
+      //           'application/json': {
+      //             schema: { $ref: '#/components/schemas/UserShort' },
+      //           },
+      //         },
+      //       },
+      //       401: {
+      //         description: 'Unauthorized',
+      //         content: {
+      //           'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } },
+      //         },
+      //       },
+      //       403: {
+      //         description: 'Forbidden (admin only)',
+      //         content: {
+      //           'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } },
+      //         },
+      //       },
+      //       404: {
+      //         description: 'User not found',
+      //         content: {
+      //           'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } },
+      //         },
+      //       },
+      //     },
+      //   },
       delete: {
         tags: ['Admin'],
         summary: 'Delete a user (admin only)',
@@ -571,6 +570,419 @@ module.exports = {
           },
           404: {
             description: 'User not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/programs/correction': {
+      post: {
+        tags: ['Correction Program'],
+        summary: 'Create a new correction program (student only) ',
+        description: 'Creates a correction program and uploads quran audio refernces',
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'multipart/form-data': {
+              schema: {
+                type: 'object',
+                properties: {
+                  assignedTeacher: { type: 'string', example: '68fdeb64c53906d3a283b8bf' },
+                  goal: {
+                    type: 'string',
+                    example: 'general_mistakes',
+                    enum: [
+                      'general_mistakes',
+                      'hidden_mistakes',
+                      'ijazah_preparation',
+                      'performance_development',
+                    ],
+                  },
+                  currentLevel: {
+                    type: 'string',
+                    enum: ['beginner', 'intermediate', 'advanced'],
+                    example: 'intermediate',
+                  },
+                  sessionsPerWeek: { type: 'number', example: 3 },
+                  sessionDuration: { type: 'number', example: 30 },
+                  preferredTimes: {
+                    type: 'string',
+                    example: '6-9_am,10-1_pm',
+                    description: 'Comma-separated or array of time slots',
+                  },
+                  preferredDays: {
+                    type: 'string',
+                    example: 'sunday,tuesday,thursday',
+                    description: 'Comma-separated or array of days',
+                  },
+                  planName: { type: 'string', example: 'General Correction Plan' },
+                  fromSurah: { type: 'string', example: 'Al-Fatihah' },
+                  toSurah: { type: 'string', example: 'Al-Baqarah' },
+                  audioReferences: {
+                    type: 'string',
+                    format: 'binary',
+                    description: 'Upload audio file',
+                  },
+                  pagesPerSession: { type: 'number', example: 1 },
+                  totalPages: { type: 'number', example: 10 },
+                  trialSession: { type: 'boolean', example: true },
+                },
+                required: ['goal', 'planName', 'fromSurah', 'toSurah'],
+              },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: 'Correction program created successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string', example: 'success' },
+                    message: {
+                      type: 'string',
+                      example: 'Correction program is created successfully',
+                    },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        program: { $ref: '#/components/schemas/CorrectionProgram' },
+                        trialSession: {
+                          type: 'object',
+                          properties: {
+                            _id: { type: 'string', example: '690a6dd1652bdea9c1ca005e' },
+                            program: { type: 'string', example: '690a6dd1652bdea9c1ca005b' },
+                            student: { $ref: '#/components/schemas/UserShort' },
+                            teacher: { $ref: '#/components/schemas/UserShort' },
+                            duration: { type: 'number', example: 15 },
+                            status: {
+                              type: 'string',
+                              enum: ['pending', 'scheduled', 'completed', 'cancelled'],
+                              example: 'pending',
+                            },
+                            preferredDays: {
+                              type: 'array',
+                              items: { type: 'string' },
+                              example: ['sunday', 'tuesday', 'thursday'],
+                            },
+                            preferredTimes: {
+                              type: 'array',
+                              items: { type: 'string' },
+                              example: ['6-9_am', '10-1_pm'],
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          400: {
+            description: 'Validation or upload error',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } },
+            },
+          },
+          403: {
+            description: 'Not allowed (only active students can create)',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } },
+            },
+          },
+        },
+      },
+
+      get: {
+        tags: ['Correction Program'],
+        summary: 'Get my correction programs (student only)',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: {
+            description: 'List of student’s correction programs',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string', example: 'success' },
+                    results: { type: 'number', example: 2 },
+                    data: {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/CorrectionProgram' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+
+    '/programs/correction/all': {
+      get: {
+        tags: ['Correction Program (Admin)'],
+        summary: 'Get all correction programs (admin only)',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: {
+            description: 'All correction programs',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string', example: 'success' },
+                    data: {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/CorrectionProgram' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+
+    '/programs/correction/trials': {
+      get: {
+        tags: ['Correction Program (Admin)'],
+        summary: 'Get all trial sessions (admin only)',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: {
+            description: 'List of all free trial sessions',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string', example: 'success' },
+                    results: { type: 'number', example: 5 },
+                    data: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          _id: { type: 'string' },
+                          student: { $ref: '#/components/schemas/UserShort' },
+                          teacher: { $ref: '#/components/schemas/UserShort' },
+                          preferredDays: {
+                            type: 'array',
+                            items: { type: 'string' },
+                            example: ['sunday', 'tuesday'],
+                          },
+                          preferredTimes: {
+                            type: 'array',
+                            items: { type: 'string' },
+                            example: ['6-9_am'],
+                          },
+                          status: { type: 'string', example: 'pending' },
+                          duration: { type: 'number', example: 15 },
+                          createdAt: { type: 'string', format: 'date-time' },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/teachers/Mytrials': {
+      get: {
+        tags: ['Teacher'],
+        summary: 'Get all trial sessions assigned to the logged-in teahcer',
+        description: 'Return all trial sessions assigned to the teacher',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: {
+            description: 'List of trial sessions',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string', example: 'success' },
+                    count: { type: 'number', example: 2 },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        trialSession: {
+                          type: 'array',
+                          items: {
+                            type: 'object',
+                            properties: {
+                              _id: { type: 'string', example: '6909e77649e8c85f507c4689' },
+                              program: {
+                                type: 'object',
+                                properties: {
+                                  _id: { type: 'string', example: '6909e77649e8c85f507c4686' },
+                                  planName: { type: 'string', example: 'General Correction Plan' },
+                                  goal: { type: 'string', example: 'general_mistakes' },
+                                  currentLevel: { type: 'string', example: 'intermediate' },
+                                  status: { type: 'string', example: 'active' },
+                                },
+                              },
+                              student: {
+                                type: 'object',
+                                properties: {
+                                  _id: { type: 'string', example: '690900a8c0461452da6539a7' },
+                                  name: { type: 'string', example: 'menna' },
+                                  email: { type: 'string', example: 'studenttest@gmail.com' },
+                                },
+                              },
+                              teacher: {
+                                type: 'object',
+                                properties: {
+                                  _id: { type: 'string', example: '68fe72e608a6a18c0ec78d56' },
+                                  name: { type: 'string', example: 'ashraf' },
+                                  email: { type: 'string', example: 'teacher@gmail.com' },
+                                },
+                              },
+                              duration: { type: 'number', example: 15 },
+                              status: { type: 'string', example: 'pending' },
+                              scheduledAt: { type: 'string', format: 'date-time' },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          403: {
+            description: 'Forbidden - only teachers allowed',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } },
+            },
+          },
+          401: {
+            description: 'Unauthorized',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } },
+            },
+          },
+        },
+      },
+    },
+    '/teachers/{id}': {
+      patch: {
+        tags: ['Teacher'],
+        summary: 'Teacher schedule the trial session',
+        description: `
+Allows a teacher to confirm and schedule a pending trial session.
+The teacher must be the one assigned to this trial. Requires Firebase authentication.
+`,
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            description: 'Trial session ID to confirm and schedule',
+            schema: { type: 'string', example: '690a3f18e09ab30fc38467f8' },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  scheduledAt: {
+                    type: 'string',
+                    format: 'date-time',
+                    example: '2025-11-06T18:00:00Z',
+                    description: 'Date and time for the scheduled session (UTC)',
+                  },
+                  meetingLink: {
+                    type: 'string',
+                    example: 'https://meet.google.com/abc-defg-hij',
+                    description: 'Meeting link for the session (e.g. Zoom, Google Meet)',
+                  },
+                },
+                required: ['scheduledAt', 'meetingLink'],
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Trial session scheduled successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string', example: 'success' },
+                    message: { type: 'string', example: 'Trial session scheduled successfully' },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        _id: { type: 'string', example: '690a3f18e09ab30fc38467f8' },
+                        program: { type: 'string', example: '690a62ad08738634f3f0c389' },
+                        student: {
+                          type: 'object',
+                          properties: {
+                            name: { type: 'string', example: 'menna' },
+                            email: { type: 'string', example: 'student@gmail.com' },
+                          },
+                        },
+                        teacher: {
+                          type: 'object',
+                          properties: {
+                            name: { type: 'string', example: 'ashraf' },
+                            email: { type: 'string', example: 'teacher@gmail.com' },
+                          },
+                        },
+                        scheduledAt: { type: 'string', format: 'date-time' },
+                        meetingLink: {
+                          type: 'string',
+                          example: 'https://meet.google.com/abc-defg-hij',
+                        },
+                        status: { type: 'string', example: 'scheduled' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          400: {
+            description: 'Invalid or missing input',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          403: {
+            description: 'Forbidden — only assigned teacher can confirm the session',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          404: {
+            description: 'Trial session not found',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/ErrorResponse' },

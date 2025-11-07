@@ -6,6 +6,7 @@ const TeacherRequest = require('../models/teacherRequestModel.js');
 //  * POST /api/v1/auth/first-login
 //  * - requires verifyFirebaseToken middleware
 exports.firstLogin = asyncHandler(async (req, res, next) => {
+    console.log('🔥 /firstLogin hit with body:', req.body);
   if (!req.firebase || !req.firebase.uid) {
     return next(new ApiError('Missing or invalid Firebase token. Please login.', 401));
   }
@@ -17,16 +18,7 @@ exports.firstLogin = asyncHandler(async (req, res, next) => {
     if (existingReq) {
       return next(new ApiError('A teacher request for this user already exists.', 400));
     }
-    // Do not create a User. Create TeacherRequest
-    // const teacherProfile = req.body.teacherProfile || JSON.parse(req.body.teacherProfile)|| {};
-    // if (!teacherProfile.bio || !Array.isArray(teacherProfile.certificates)) {
-    //   return next(
-    //     new ApiError(
-    //       'To sign up as teacher you must send teacherProfile with bio and certificates array.',
-    //       400
-    //     )
-    //   );
-    // }
+
     const tr = await TeacherRequest.create({
       email: decoded.email || req.body.email,
       name:
@@ -73,7 +65,7 @@ exports.firstLogin = asyncHandler(async (req, res, next) => {
     profile_picture: decoded.picture || req.body.profile_picture || undefined,
     role: decoded.role,
     status: 'active',
-    studentProfile: JSON.parse(req.body.studentProfile) || undefined,
+studentProfile: req.body.studentProfile ? JSON.parse(req.body.studentProfile) : undefined,
   });
 
   return res.status(201).json({ message: 'Account created', user });

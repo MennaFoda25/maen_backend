@@ -13,11 +13,6 @@
 | `phone`           | Text | +201112223334                                 |
 | `password`        | Text | 12345678                                      |
 | `role`            | Text | admin                                         |
-| `country`         | Text | Egypt                                         |
-| `language`        | Text | English                                       |
-| `currency`        | Text | USD                                           |
-| `profile_picture` | File | 📁 (choose an image file)                     |
-
 
 --------------------------------------------------------
 {{URL}}/api/v1/auth/register
@@ -59,7 +54,7 @@
 | Key               | Type | Value                                                         |
 | ----------------- | ---- | ------------------------------------------------------------- |
 | `name`            | Text | Menna Ashraf                                                  |
-| `email`           | Text | [menna_student@example.com](mailto:menna_student@example.com) |
+| `email`           | Text | menna_student@example.com |
 | `phone`           | Text | +201234567890                                                 |
 | `password`        | Text | 12345678                                                      |
 | `role`            | Text | student                                                       |
@@ -93,5 +88,7 @@
         "id": "68f8ac28df9ea9337a8db2a9"
     }
 }
+
+
 
 

@@ -51,6 +51,7 @@ exports.createUserValidator = [
     }
     return true;
   }),
+  check('studentProfile').optional(),
 
   check('phone').optional().isMobilePhone('any').withMessage('Invalid phone number'),
   validatorMiddleware,

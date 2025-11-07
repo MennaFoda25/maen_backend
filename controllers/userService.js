@@ -19,7 +19,6 @@ exports.createAdmin = asyncHandler(async (req, res, next) => {
       name: decoded.name || req.body.name,
       email: decoded.email || req.body.email,
       phone: decoded.phone || req.body.phone,
-
       role: 'admin',
       status: 'active',
     });

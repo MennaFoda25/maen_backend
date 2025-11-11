@@ -15,7 +15,6 @@
 | `role`            | Text | admin                                         |
 
 --------------------------------------------------------
-{{URL}}/api/v1/auth/register
 
 -Create teacher :
 -----------------
@@ -46,7 +45,6 @@
         "id": "68f8a5e2a758a0404eb8add0"
     }
 }
-
 
 
 -Create student :

@@ -1,11 +1,8 @@
 const asyncHandler = require('express-async-handler');
-const { uploadAndAttachUrl } = require('../middlewares/uploadImageMiddleware');
 const User = require('../models/userModel');
 const factory = require('./handlerFactory');
 const ApiError = require('../utils/apiError');
 const admin = require('../config/firebase');
-
-exports.uploadUserImg = uploadAndAttachUrl('profile_picture');
 
 // @desc    Create user
 // @route   POST  /api/v1/users
@@ -30,59 +27,82 @@ exports.createAdmin = asyncHandler(async (req, res, next) => {
 // @route   PUT /api/v1/users/:id
 // @access  Private/Admin
 exports.updateUser = asyncHandler(async (req, res, next) => {
-  const user = await User.findById(req.params.id);
-
+  const decoded = req.firebase;
+  if (!decoded?.uid) {
+    return next(new ApiError('Unauthorized: Invalid or missing Firebase token.', 401));
+  }
+  const user = await User.findOne({ firebaseUid: decoded.uid });
   if (!user) {
     return next(new ApiError('User not found', 404));
   }
 
-  if (req.body.password) {
+  if (req.body.password ) {
     return next(
       new ApiError('You cannot update password from here, please use /changeMyPassword route', 400)
     );
   }
-  let updateData = {
-    name: req.body.name || user.name,
-    slug: req.body.slug || user.slug,
-    phone: req.body.phone || user.phone,
-    email: req.body.email || user.email,
-    profile_picture: req.body.profile_picture || user.profile_picture,
-    role: req.body.role || user.role,
-  };
+  const allowedFields = ['name', 'slug', 'phone', 'email', 'profile_picture'];
+  const updateData = {};
+
+  for (const field of allowedFields) {
+    if (req.body[field] !== undefined) {
+      updateData[field] = req.body[field];
+    }
+  }
+  // const updateData = {
+  //   name: req.body.name || user.name,
+  //   slug: req.body.slug || user.slug,
+  //   phone: req.body.phone || user.phone,
+  //   email: req.body.email || user.email,
+  //   profile_picture: req.body.profile_picture || user.profile_picture,
+  // };
 
   if (user.role === 'student') {
+    const { learning_goals, current_level } = req.body;
     updateData.studentProfile = {
-      learning_goals: req.body.learning_goals
-        ? Array.isArray(req.body.learning_goals)
-          ? req.body.learning_goals
-          : [req.body.learning_goals]
-        : user.studentProfile?.learning_goals || [],
-      current_level: req.body.current_level
-        ? Array.isArray(req.body.current_level)
-          ? req.body.current_level
-          : [req.body.current_level]
-        : user.studentProfile?.current_level || [],
+      learning_goals: learning_goals
+        ? Array.isArray(learning_goals)
+          ? learning_goals
+          : String(learning_goals)
+              .split(',')
+              .map((v) => v.trim())
+        : (user.studentProfile?.learning_goals ?? []),
+      current_level: current_level ?? user.studentProfile?.current_level ?? '',
     };
-  } else if (user.role === 'teacher') {
+  }
+  if (user.role === 'teacher') {
+    const { bio, certificates, specialties, hourly_rate, availability_schedule } = req.body;
     updateData.teacherProfile = {
-      bio: req.body.bio || user.teacherProfile?.bio || '',
-      certificates: req.body.certificates
-        ? req.body.certificates.split(',')
-        : user.teacherProfile?.certificates || [],
-      specialties: req.body.specialties
-        ? req.body.specialties.split(',')
-        : user.teacherProfile?.specialties || [],
-      hourly_rate: req.body.hourly_rate || user.teacherProfile?.hourly_rate || 0,
-      availability_schedule: req.body.availability_schedule
-        ? req.body.availability_schedule.split(',')
-        : user.teacherProfile?.availability_schedule || [],
+      bio: bio ?? user.teacherProfile?.bio ?? '',
+      specialties: specialties
+        ? Array.isArray(specialties)
+          ? specialties
+          : String(specialties)
+              .split(',')
+              .map((v) => v.trim())
+        : (user.teacherProfile?.specialties ?? []),
+      hourly_rate: hourly_rate ?? user.teacherProfile?.hourly_rate ?? 0,
+      availability_schedule: availability_schedule
+        ? Array.isArray(availability_schedule)
+          ? availability_schedule
+          : String(availability_schedule)
+              .split(',')
+              .map((v) => v.trim())
+        : (user.teacherProfile?.availability_schedule ?? []),
+      certificates: certificates
+        ? Array.isArray(certificates)
+          ? certificates
+          : String(certificates)
+              .split(',')
+              .map((v) => v.trim())
+        : (user.teacherProfile?.certificates ?? []),
     };
   }
 
-  const updatedUser = await User.findByIdAndUpdate(req.params.id, updateData, {
+  const updatedUser = await User.findByIdAndUpdate(user._id, updateData, {
     new: true,
     runValidators: true,
-  });
+  }).lean();
 
   res.status(200).json({
     status: 'success',

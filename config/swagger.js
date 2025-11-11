@@ -5,12 +5,11 @@ module.exports = {
   info: {
     title: 'Quraan Tutor API',
     version: '1.0.0',
-    description:
-      'API docs for Quraan Tutor backend. NOTE: Authentication uses Firebase ID tokens — get an idToken from Firebase and paste it into the Authorize dialog as `Bearer <idToken>`.',
+    description: 'API docs for Quraan Tutor backend..',
   },
   servers: [
     {
-      // "url": "http://localhost:3000/api/v1",
+      //url: 'http://localhost:3000/api/v1',
       url: 'https://maen-backend.onrender.com/api/v1',
       //description: 'local dev server',
       description:
@@ -19,10 +18,12 @@ module.exports = {
   ],
   components: {
     securitySchemes: {
-      bearerAuth: {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT (Firebase ID token)',
+      FirebaseUidAuth: {
+        type: 'apiKey',
+        in: 'header',
+        name: 'x-firebase-uid',
+        description:
+          'Enter your Firebase UID here. This header replaces Firebase tokens and is required for authenticated routes.',
       },
     },
     schemas: {
@@ -69,7 +70,6 @@ module.exports = {
           email: { type: 'string', example: 'student@gmail.com' },
           role: { type: 'string', example: 'student' },
           status: { type: 'string', example: 'active' },
-          //  studentProfile: { $ref: '#/components/schemas/StudentProfile' },
         },
       },
       TeacherRequest: {
@@ -135,11 +135,13 @@ module.exports = {
       },
     },
   },
-  security: [{ bearerAuth: [] }],
+
+  security: [{ FirebaseUidAuth: [] }],
   paths: {
     '/auth/register': {
       post: {
         tags: ['Auth'],
+        security: [{ FirebaseUidAuth: [] }],
         summary:
           'Register a new account (student or teacher). Use multipart/form-data for image + JSON fields.',
         requestBody: {
@@ -152,7 +154,8 @@ module.exports = {
                   name: { type: 'string' },
                   email: { type: 'string' },
                   password: { type: 'string' },
-                  passwordConfirm: { type: 'string' },
+                  phone: { type: 'string', example: '+201000999000' },
+                  gender: { type: 'string', enum: ['male', 'female'], example: 'female' },
                   role: { type: 'string', enum: ['student', 'teacher'], example: 'student' },
                   studentProfile: {
                     type: 'string',
@@ -162,11 +165,40 @@ module.exports = {
                   teacherProfile: {
                     type: 'string',
                     description: 'Only if role = teacher (JSON string)',
-                    example: ' {"bio":"...","certificates":["..."],"specialties":["..."]}',
+                    example: `{
+                  "bio": "Certified Quran tutor with 8 years of experience teaching Tajweed and Qira’at online.",
+                  "major": "Islamic Studies",
+                  "hasIjazah": true,
+                  "qiraat": ["hafs", "warsh"],
+                  "teachingTracks": ["tajweed", "hifz", "kids"],
+                  "languages": ["arabic", "english"],
+                  "quietEnvironment": true,
+                  "deviceType": "desktop",
+                  "timezone": "GMT+3:00 Asia/Riyadh",
+                  "availabilitySchedule": [
+                    { "day": "sunday", "timeSlots": [{ "from": "09:00", "to": "12:00" }] }
+                  ]
+                }`,
                   },
-                  profileImg: { type: 'string', format: 'binary' },
+                  profile_picture: {
+                    type: 'string',
+                    format: 'binary',
+                    description: 'Optional profile picture upload',
+                  },
+                  certificates: {
+                    type: 'array',
+                    items: { type: 'string', format: 'binary' },
+                    description:
+                      'Optional certificate file uploads (PDF, JPG, PNG). Can also send certificate names as strings instead of files.',
+                  },
+                  birthDate: { type: 'string', format: 'date', example: '1995-06-10' },
+                  nationality: { type: 'string', example: 'Egyptian' },
+                  countryOfResidence: { type: 'string', example: 'Saudi Arabia' },
+                  declarationAccuracy: { type: 'boolean', example: true },
+                  acceptTerms: { type: 'boolean', example: true },
+                  acceptPrivacy: { type: 'boolean', example: true },
                 },
-                required: ['email', 'name', 'password', 'passwordConfirm', 'role'],
+                required: ['email', 'name', 'password', 'role'],
               },
             },
           },
@@ -199,7 +231,7 @@ module.exports = {
       get: {
         tags: ['Auth'],
         summary: 'Get current user (requires Authorization: Bearer <Firebase idToken>)',
-        security: [{ bearerAuth: [] }],
+        security: [{ FirebaseUidAuth: [] }],
         responses: {
           200: {
             description: 'Current user data (Mongo user)',
@@ -229,7 +261,7 @@ module.exports = {
         tags: ['TeacherRequest'],
         summary:
           'Create a teacher request (student upgrade OR teacher first-login). Requires Firebase token.',
-        security: [{ bearerAuth: [] }],
+        security: [{ FirebaseUidAuth: [] }],
         requestBody: {
           required: true,
           content: {
@@ -272,7 +304,7 @@ module.exports = {
         tags: ['TeacherRequest'],
         summary:
           'List teacher requests (admin only). Supports optional query param ?status=pending|approved|rejected',
-        security: [{ bearerAuth: [] }],
+        security: [{ FirebaseUidAuth: [] }],
         parameters: [
           {
             name: 'status',
@@ -312,7 +344,7 @@ module.exports = {
         tags: ['TeacherRequest'],
         summary:
           "Admin approve or reject a teacher request. Body: { status: 'approved' | 'rejected' }",
-        security: [{ bearerAuth: [] }],
+        security: [{ FirebaseUidAuth: [] }],
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
         requestBody: {
           required: true,
@@ -357,7 +389,7 @@ module.exports = {
       get: {
         tags: ['Admin'],
         summary: 'Get all users (admin only)',
-        security: [{ bearerAuth: [] }],
+        security: [{ FirebaseUidAuth: [] }],
         responses: {
           200: {
             description: 'List of all users',
@@ -396,7 +428,7 @@ module.exports = {
       get: {
         tags: ['Admin'],
         summary: 'Get a user by ID (admin only)',
-        security: [{ bearerAuth: [] }],
+        security: [{ FirebaseUidAuth: [] }],
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
         responses: {
           200: {
@@ -492,7 +524,7 @@ module.exports = {
     '/users/changePassword': {
       put: {
         summary: "Change logged-in user's password (Firebase only)",
-        security: [{ bearerAuth: [] }],
+        security: [{ FirebaseUidAuth: [] }],
         requestBody: {
           required: true,
           content: {
@@ -515,7 +547,7 @@ module.exports = {
       put: {
         tags: ['Admin'],
         summary: "Suspend or activate a user (admin only). Body: { action: 'suspend'|'activate' }",
-        security: [{ bearerAuth: [] }],
+        security: [{ FirebaseUidAuth: [] }],
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
         requestBody: {
           required: true,
@@ -584,7 +616,7 @@ module.exports = {
         tags: ['Correction Program'],
         summary: 'Create a new correction program (student only) ',
         description: 'Creates a correction program and uploads quran audio refernces',
-        security: [{ bearerAuth: [] }],
+        security: [{ FirebaseUidAuth: [] }],
         requestBody: {
           required: true,
           content: {
@@ -732,7 +764,7 @@ module.exports = {
       get: {
         tags: ['Correction Program (Admin)'],
         summary: 'Get all correction programs (admin only)',
-        security: [{ bearerAuth: [] }],
+        security: [{ FirebaseUidAuth: [] }],
         responses: {
           200: {
             description: 'All correction programs',
@@ -759,7 +791,7 @@ module.exports = {
       get: {
         tags: ['Correction Program (Admin)'],
         summary: 'Get all trial sessions (admin only)',
-        security: [{ bearerAuth: [] }],
+        security: [{ FirebaseUidAuth: [] }],
         responses: {
           200: {
             description: 'List of all free trial sessions',
@@ -807,7 +839,7 @@ module.exports = {
         tags: ['Teacher'],
         summary: 'Get all trial sessions assigned to the logged-in teahcer',
         description: 'Return all trial sessions assigned to the teacher',
-        security: [{ bearerAuth: [] }],
+        security: [{ FirebaseUidAuth: [] }],
         responses: {
           200: {
             description: 'List of trial sessions',
@@ -889,7 +921,7 @@ module.exports = {
 Allows a teacher to confirm and schedule a pending trial session.
 The teacher must be the one assigned to this trial. Requires Firebase authentication.
 `,
-        security: [{ bearerAuth: [] }],
+        security: [{ FirebaseUidAuth: [] }],
         parameters: [
           {
             name: 'id',

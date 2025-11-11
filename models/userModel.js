@@ -1,12 +1,18 @@
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
 
+const certificateSchema = new mongoose.Schema(
+  {
+    fileUrl: { type: String, required: true },
+    fileName: { type: String },
+  },
+  { _id: false }
+);
 const teacherSchema = new mongoose.Schema(
   {
-    bio: String,
-    certificates: [String],
+    bio: { type: String },
+    certificates: [certificateSchema],
     specialties: [String],
-    hourly_rate: Number,
+    hourly_rate: { type: Number },
     availability_schedule: [String],
   },
   { _id: false }
@@ -45,15 +51,6 @@ const userSchema = new mongoose.Schema(
       sparse: true, // allows non-firebase users to exist
     },
 
-    // password: {
-    //   type: String,
-    //   required: function () {
-    //     // 🔥 Only require password if the user is NOT from Firebase
-    //     return !this.firebaseUid;
-    //   },
-    //   select: false,
-    // },
-
     role: {
       type: String,
       enum: ['student', 'teacher', 'admin'],
@@ -61,13 +58,16 @@ const userSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['active', 'inactive', 'pending','rejected', 'approved'],
+      enum: ['active', 'inactive', 'pending', 'rejected', 'approved'],
       default: 'active',
     },
     country: { type: String },
     language: { type: String, default: 'en' },
     currency: { type: String, default: 'EGP' },
-    profile_picture: { type: String },
+    profile_picture: {
+      type: String
+    },
+    gender: { type: String, enum: ['male', 'female'], requied: true },
     teacherProfile: teacherSchema,
     studentProfile: studentSchema,
     createdAt: { type: Date, default: Date.now },
@@ -88,54 +88,5 @@ const userSchema = new mongoose.Schema(
 //   next();
 // });
 const User = mongoose.model('User', userSchema);
-
+// const TeacherSchema = mongoose.model('Teahcer',teacherSchema)
 module.exports = User;
-
-// const mongoose = require('mongoose');
-
-// const trialSessionSchema = new mongoose.Schema(
-//   {
-//     program: {
-//       type: mongoose.Schema.ObjectId,
-//       ref: 'CorrectionProgram',
-//       required: true,
-//     },
-
-//     student: {
-//       type: mongoose.Schema.ObjectId,
-//       ref: 'User',
-//       required: true,
-//     },
-//     teacher: {
-//       type: mongoose.Schema.ObjectId,
-//       ref: 'User',
-//       required: true,
-//     },
-//     duration: {
-//       type: Number,
-//       default: 15,
-//     },
-//     status: {
-//       type: String,
-//       enum: ['pending', 'scheduled', 'completed', 'cancelled'],
-//       default: 'pending',
-//     },
-//     scheduledAt: Date,
-//     meetingLink: String,
-//     createdAt: {
-//       type: Date,
-//       default: Date.now,
-//     },
-//   preferredTimes: {
-//       type: [String],
-//      // enum: ['6-9_am', '10-1_pm', '2-5_pm', '6-9_pm', '10-1_am'],
-//     }, // e.g. ['evening', 'afternoon']
-//     Days: {
-//       type: [String],
-//       required:true},
-//   },
-//   { toJSON: { virtuals: true }, toObject: { virtuals: true } }
-// );
-
-// const TrialSession = mongoose.model('TrialSession', trialSessionSchema);
-// module.exports = TrialSession;

@@ -5,11 +5,11 @@ const {
   trialSessionAccept,
 } = require('../controllers/correctionProgramServices');
 const { allowedTo } = require('../controllers/authServices');
-const { verifyFirebaseToken } = require('../middlewares/firebaseAuth');
+const { firebaseAuth } = require('../middlewares/firebaseAuth');
 
-router.use(verifyFirebaseToken);
+router.use(firebaseAuth);
 
 router.get('/Mytrials', allowedTo('teacher'), getAssignedTeacherTrials);
-router.patch('/:id', verifyFirebaseToken, allowedTo('teacher'), trialSessionAccept);
+router.patch('/:id', allowedTo('teacher'), trialSessionAccept);
 
 module.exports = router;

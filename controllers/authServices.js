@@ -1,113 +1,100 @@
 const ApiError = require('../utils/apiError.js');
 const asyncHandler = require('express-async-handler');
 const User = require('../models/userModel.js');
-const TeacherRequest = require('../models/teacherRequestModel.js');
+const { teacherSignUp } = require('./teacherRequestService');
+const { studentSignUp } = require('./studentServices');
+const TeacherRequest = require('../models/teacherRequestModel');
 
-//  * POST /api/v1/auth/first-login
-//  * - requires verifyFirebaseToken middleware
 exports.firstLogin = asyncHandler(async (req, res, next) => {
-    console.log('🔥 /firstLogin hit with body:', req.body);
-  if (!req.firebase || !req.firebase.uid) {
-    return next(new ApiError('Missing or invalid Firebase token. Please login.', 401));
-  }
-  const decoded = req.firebase;
   const { role } = req.body;
 
-  if (role === 'teacher') {
-    const existingReq = await TeacherRequest.findOne({ firebaseUid: decoded.uid });
-    if (existingReq) {
-      return next(new ApiError('A teacher request for this user already exists.', 400));
-    }
-
-    const tr = await TeacherRequest.create({
-      email: decoded.email || req.body.email,
-      name:
-        decoded.name || req.body.name || (decoded.email ? decoded.email.split('@')[0] : 'NoName'),
-      firebaseUid: decoded.uid,
-      profile_picture: decoded.picture || req.body.profile_picture || undefined,
-      teacherProfile: JSON.parse(req.body.teacherProfile),
-      status: 'pending',
-    });
-
-    return res
-      .status(201)
-      .json({ message: 'Teacher request created and pending admin approval', request: tr });
+  if (!role) {
+    return next(new ApiError('Missing user role in request body', 400));
   }
 
-  let user = await User.findOne({ firebaseUid: decoded.uid });
-
-  if (user) {
-    let changed = false;
-    if (decoded.email && user.email !== decoded.email) {
-      user.email = decoded.email;
-      changed = true;
-    }
-
-    if (decoded.name && user.name !== decoded.name) {
-      user.name = decoded.name;
-      changed = true;
-    }
-
-    if (decoded.picture && user.profile_picture !== decoded.picture) {
-      user.profile_picture = decoded.picture;
-      changed = true;
-    }
-
-    if (changed) await user.save();
-
-    return res.json({ user });
-  }
-
-  user = await User.create({
-    firebaseUid: decoded.uid,
-    email: decoded.email || req.body.email,
-    name: decoded.name || req.body.name || (decoded.email ? decoded.email.split('@')[0] : 'NoName'),
-    profile_picture: decoded.picture || req.body.profile_picture || undefined,
-    role: decoded.role,
-    status: 'active',
-studentProfile: req.body.studentProfile ? JSON.parse(req.body.studentProfile) : undefined,
-  });
-
-  return res.status(201).json({ message: 'Account created', user });
+  if (role === 'teacher') return teacherSignUp(req, res, next);
+  if (role === 'student') return studentSignUp(req, res, next);
 });
-
-//GET /api/v1/auth/me
-// get current firebase user and verify token
 
 exports.getFirebaseUser = asyncHandler(async (req, res, next) => {
-  if (!req.firebase || !req.firebase.uid) {
-    return next(new ApiError('Missing or invalid Firebase token. Please login.', 401));
-  }
-  const decoded = req.firebase;
+  const uid =
+    req.firebase?.uid ||
+    req.body?.firebaseUid ||
+    req.query?.firebaseUid ||
+    req.headers['x-firebase-uid'];
 
-  const user = await User.findOne({ firebaseUid: decoded.uid });
-  if (!user) return next(new ApiError('User not found. Please complete first-login.', 404));
+  if (!uid) {
+    return next(new ApiError('Missing firebaseUid. Please include it in the request.', 401));
+  }
+  console.log('🔥 UID received:', uid);
 
-  let changed = false;
-  if (decoded.email && user.email !== decoded.email) {
-    user.email = decoded.email;
-    changed = true;
+  const user = await User.findOne({ firebaseUid: uid });
+  if (user) {
+    return res.status(200).json({
+      message: 'User retrieved successfully',
+      status: 'active',
+      user,
+    });
   }
-  if (decoded.name && user.name !== decoded.name) {
-    user.name = decoded.name;
-    changed = true;
-  }
-  if (decoded.picture && user.profile_picture !== decoded.picture) {
-    user.profile_picture = decoded.picture;
-    changed = true;
-  }
-  if (changed) await user.save();
 
-  res.json({ user });
+  const teacherRequest = await TeacherRequest.findOne({ firebaseUid: uid });
+  if (teacherRequest) {
+    return res.status(200).json({
+      message: 'Teacher request found. Awaiting admin approval.',
+      status: teacherRequest.status, // pending / rejected
+      request: teacherRequest,
+    });
+  }
+  return next(new ApiError('User not found. Please complete registration.', 404));
 });
+
+// exports.allowedTo = (...roles) =>
+//   asyncHandler(async (req, res, next) => {
+//     const firebaseUid = req.firebase?.uid
+//     if(!firebaseUid){
+//       return next(new ApiError('Missing firebaseUid', 401))
+//     }
+
+//     if (!roles.includes(req.user.role)) {
+//       return next(new ApiError('You are not allowed to access this route', 403));
+//     }
+//     if (req.user.role === 'teacher' && req.user.status === 'pending') {
+//       return next(new ApiError('Your teacher account is awaiting approval', 403));
+//     }
+//     next();
+//   });
+
+// exports.allowedToAdmin = asyncHandler(async (req, res, next) => {
+//   const uid = req.firebase?.uid;
+
+//   if (!uid) return next(new ApiError('Missing firebaseUid', 401));
+
+//   const adminUser = await User.findOne({ firebaseUid: uid, role: 'admin' });
+
+//   if (!adminUser) return next(new ApiError('access denied', 403));
+
+//   next();
+// });
 
 exports.allowedTo = (...roles) =>
   asyncHandler(async (req, res, next) => {
-    if (!roles.includes(req.user.role)) {
-      return next(new ApiError('You are not allowed to access this route', 403));
+    const firebaseUid = req.firebase?.uid;
+    // if (!firebaseUid) {
+    //   return next(new ApiError('Missing firebaseUid', 401));
+    // }
+    const user = await User.findOne({ firebaseUid });
+    if (!user) {
+      return next(new ApiError('User not found. Please complete registration first.', 404));
     }
-    if (req.user.role === 'teacher' && req.user.status === 'pending') {
-      return next(new ApiError('Your teacher account is awaiting approval', 403));
+
+        if (user.role === 'teacher' && user.status === 'pending') {
+      return next(new ApiError('Your teacher account is awaiting admin approval', 403));
     }
+  // Role check
+    if (!roles.includes(user.role)) {
+      return next(new ApiError(`Access denied. Only [${roles.join(', ')}] allowed.`, 403));
+    }
+
+    req.user = user;
     next();
   });

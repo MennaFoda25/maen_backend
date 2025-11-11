@@ -37,20 +37,10 @@ exports.createUserValidator = [
       throw new Error('Password must be at least 6 characters');
     }
 
-    if (!isFirebaseUser && value !== req.body.passwordConfirm) {
-      throw new Error('Password confirmation does not match');
-    }
-
     return true;
   }),
 
-  // ✅ Conditionally skip passwordConfirm for Firebase users
-  check('passwordConfirm').custom((value, { req }) => {
-    if (!req.body.firebase_uid && !value) {
-      throw new Error('Password confirmation is required');
-    }
-    return true;
-  }),
+
   check('studentProfile').optional(),
 
   check('phone').optional().isMobilePhone('any').withMessage('Invalid phone number'),
@@ -62,7 +52,6 @@ exports.getUserValidator = [
   validatorMiddleware,
 ];
 exports.updateUserValidator = [
-  check('id').isMongoId().withMessage('Invalid user id format'),
   check('name')
     .optional()
     .custom((val, { req }) => {
@@ -90,8 +79,6 @@ exports.changePasswordValidator = [
 
   check('oldPassword').notEmpty().withMessage('You must enter your current password'),
 
-  check('passwordConfirm').notEmpty().withMessage('You must enter your password confirmation'),
-
   check('password')
     .notEmpty()
     .withMessage('You must enter your new password')
@@ -108,9 +95,7 @@ exports.changePasswordValidator = [
       if (!isPasswordCorrect) {
         return Promise.reject(new Error('Your password is wrong'));
       }
-      if (password !== req.body.passwordConfirm) {
-        throw new Error('Password Confirmation does not match');
-      }
+
       return true;
     }),
 

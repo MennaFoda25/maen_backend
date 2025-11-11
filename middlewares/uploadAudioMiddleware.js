@@ -1,27 +1,3 @@
-// const multer = require('multer')
-// const {CloudinaryStorage} = require('multer-storage-cloudinary')
-// const  cloudinary = require('../config/cloudinary')
-
-// const ApiError = require('../utils/apiError')
-
-// const audioStorage = new CloudinaryStorage({
-//     cloudinary,
-//     params:{
-//         folder: 'maen_audios',
-//         resource_type: 'video',
-//         format: async(req,file)=> 'mp3',
-//         public_id: (req,file) => `audio_${Date.now()}`
-//     }
-// })
-
-// function fileFilter(req,file,cb){
-//     if(file.mimetype.startsWith('audio/')) cb(null,true)
-//         else cb(new Error ('Only audio files are allowed'), false)
-// }
-
-// const uploadAudio = multer({storage: audioStorage, fileFilter})
-
-// module.exports = uploadAudio;
 
 const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');

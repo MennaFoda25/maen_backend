@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { verifyFirebaseToken } = require('../middlewares/firebaseAuth');
+const { firebaseAuth  } = require('../middlewares/firebaseAuth');
 const { allowedTo } = require('../controllers/authServices');
 const { uploadAndAttachAudio } = require('../middlewares/uploadAudioMiddleware');
 const {
@@ -13,7 +13,7 @@ const {
   createCorrectionProgramValidator,
 } = require('../utils/validators/correctionProgramValidation');
 
-router.use(verifyFirebaseToken);
+router.use(firebaseAuth );
 router
   .route('/')
   .post(

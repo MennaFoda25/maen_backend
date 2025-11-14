@@ -48,34 +48,6 @@ exports.getFirebaseUser = asyncHandler(async (req, res, next) => {
   return next(new ApiError('User not found. Please complete registration.', 404));
 });
 
-// exports.allowedTo = (...roles) =>
-//   asyncHandler(async (req, res, next) => {
-//     const firebaseUid = req.firebase?.uid
-//     if(!firebaseUid){
-//       return next(new ApiError('Missing firebaseUid', 401))
-//     }
-
-//     if (!roles.includes(req.user.role)) {
-//       return next(new ApiError('You are not allowed to access this route', 403));
-//     }
-//     if (req.user.role === 'teacher' && req.user.status === 'pending') {
-//       return next(new ApiError('Your teacher account is awaiting approval', 403));
-//     }
-//     next();
-//   });
-
-// exports.allowedToAdmin = asyncHandler(async (req, res, next) => {
-//   const uid = req.firebase?.uid;
-
-//   if (!uid) return next(new ApiError('Missing firebaseUid', 401));
-
-//   const adminUser = await User.findOne({ firebaseUid: uid, role: 'admin' });
-
-//   if (!adminUser) return next(new ApiError('access denied', 403));
-
-//   next();
-// });
-
 exports.allowedTo = (...roles) =>
   asyncHandler(async (req, res, next) => {
     const firebaseUid = req.firebase?.uid;

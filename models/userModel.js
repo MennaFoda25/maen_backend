@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const certificateSchema = new mongoose.Schema(
   {
-    fileUrl: { type: String, required: true },
+    fileUrl: { type: String },
     fileName: { type: String },
   },
   { _id: false }
@@ -12,6 +12,12 @@ const teacherSchema = new mongoose.Schema(
     bio: { type: String },
     certificates: [certificateSchema],
     specialties: [String],
+    programPreference: [
+      {
+        type: String,
+        enum: ['CorrectionProgram', 'MemorizationProgram', 'ChildMemorizationProgram'],
+      },
+    ],
     hourly_rate: { type: Number },
     availability_schedule: [String],
   },
@@ -58,20 +64,24 @@ const userSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['active', 'inactive', 'pending', 'rejected', 'approved'],
+      enum: ['active', 'inactive', 'pending', 'rejected'],
       default: 'active',
     },
     country: { type: String },
     language: { type: String, default: 'en' },
     currency: { type: String, default: 'EGP' },
     profile_picture: {
-      type: String
+      type: String,
     },
     gender: { type: String, enum: ['male', 'female'], requied: true },
     teacherProfile: teacherSchema,
     studentProfile: studentSchema,
     createdAt: { type: Date, default: Date.now },
+    rating: { type: Number, default: 0 },       // average rating (0–5)
+ratingCount: { type: Number, default: 0 }   // number of ratings
+
   },
+  
   {
     toJSON: { virtuals: true },
     toObject: { virtuals: true },

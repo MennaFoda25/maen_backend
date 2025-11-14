@@ -1,0 +1,129 @@
+const asyncHandler = require('express-async-handler');
+const ApiError = require('../utils/apiError');
+const ChildProgram = require('../models/childMemoProgramModel');
+const User = require('../models/userModel');
+const TrialSession = require('../models/trialSessionModel');
+const { createTrialSession } = require('../controllers/programServices'); // reuse
+const factory = require('./handlerFactory')
+
+// Helper to safely convert strings or arrays into array of strings
+const toArray = (value) => {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.map((v) => v.trim());
+  return String(value)
+    .split(',')
+    .map((v) => v.trim())
+    .filter(Boolean);
+};
+
+// create program (parent)
+exports.createChildMemProgram = asyncHandler(async (req, res, next) => {
+  const parent = await User.findById(req.user._id);
+  if (!parent) return next(new ApiError('Parent not found', 404));
+
+  const payload = {
+    firebaseUid: parent.firebaseUid,
+    parent: parent._id,
+    childName: req.body.childName,
+    childGender: req.body.childGender,
+    childAge: req.body.childAge,
+    hasPriorLearning: req.body.hasPriorLearning,
+    knowSurahs: req.body.savedSurahsOrParts,
+    readingLevel: req.body.readingLevel,
+    mainGoal: req.body.mainGoal,
+    weeklySessions: req.body.weeklySessions,
+    sessionDuration: req.body.sessionDuration,
+    days:toArray(req.body.days),
+    preferredTimes: toArray(req.body.preferredTimes),
+    teacherGender: req.body.teacherGender,
+    notesForTeacher: req.body.notesForTeacher,
+    planName: req.body.planName,
+    memorizationDirection: req.body.memorizationDirection,
+    memorizationRange: {
+      fromSurah: req.body.fromSurah,
+      fromAyah: req.body.fromAyah,
+      toSurah: req.body.toSurah,
+      toAyah: req.body.toAyah,
+    },
+    facesLabel: req.body.facesLabel,
+    facesPerSession: req.body.facesPerSession,
+    totalFaces: req.body.totalFaces || 0,
+    completedFaces: req.body.completedFaces || 0,
+    assignedTeacher:req.body.assignedTeacher,
+    allowTrial: req.body.allowTrial !== undefined ? req.body.allowTrial : true,
+  };
+
+  const program = await ChildProgram.create(payload);
+
+  // Optional: create a trial session if requested and a teacher chosen
+  let trial = null;
+    const programData = await ChildProgram.findById(program._id);
+    trial = await TrialSession.create({
+      program: program._id,
+      programModel: 'ChildMemorizationProgram',
+      student: parent._id,
+      teacher: program.assignedTeacher._id,
+      duration: 15,
+      status: 'pending',
+      preferredTimes: program.preferredTimes || [],
+      days: program.days || [],
+    });
+  
+
+  const populated = await ChildProgram.findById(program._id)
+    .populate('parent', 'name email')
+    .populate('assignedTeacher', 'name email');
+
+  res.status(201).json({
+    status: 'success',
+    message: 'Child memorization program created',
+    data: {
+      program: populated,
+      trialSession: trial
+        ? await TrialSession.findById(trial._id).populate('teacher student', 'name email')
+        : null,
+    },
+  });
+});
+
+exports.getMyChildPrograms = asyncHandler(async(req,res,next)=>{
+   const { _id, role } = req.user;
+
+  // Determine filter & population based on role
+  let filter = {};
+  let populateField = '';
+
+  if (role === 'teacher') {
+    filter = { assignedTeacher: _id };
+    populateField = 'parent';
+  } else if (role === 'student') {
+    filter = { parent: _id };
+    populateField = 'assignedTeacher';
+  } else {
+    return next(new ApiError('Only teachers and students can access their programs', 403));
+  }
+
+  // Fetch assigned programs
+  const programs = await ChildProgram.find(filter)
+    .populate(populateField, 'name email')
+    .select('-__v');
+
+  if (!programs || programs.length === 0) {
+    return next(
+      new ApiError(
+        role === 'teacher'
+          ? 'No child memorization programs assigned to you yet'
+          : "You don't have any child memorization programs yet",
+        404
+      )
+    );
+  }
+
+  res.status(200).json({
+    status: 'success',
+    count: programs.length,
+    role,
+    data: programs,
+  });
+})
+exports.getAllChildPrograms = factory.getAll(ChildProgram)

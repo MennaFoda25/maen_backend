@@ -9,12 +9,12 @@ const globalError = (err, req, res, next) => {
 };
 
 const SendErrorForDev = (err, res) => {
-  return res.status(err.statusCode).json({
+  res.status(err.statusCode).json({
     status: err.status,
-    error: err,
     message: err.message,
-    stack: err.stack,
+    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
   });
+
 };
 
 const SendErrorForProd = (err, res) => {

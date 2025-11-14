@@ -8,19 +8,6 @@ const safeJsonParse = (data, fallback = {}) => {
   return typeof data === 'string' ? JSON.parse(data) : data || fallback;
 };
 
-// const extractCertificates = (files) =>
-//   Array.isArray(files?.certificates)
-//     ? files.certificates.map((f) => ({ fileUrl: f.path, fileName: f.originalname }))
-//     : [];
-
-// const extractProfileImg = (files, body, decoded) => {
-//   if (!files) return body.profile_picture || decoded?.picture || null;
-
-//   const file = files.profileImg?.[0] || files.profile_picture?.[0]; // fallback if frontend used different name
-
-//   return file?.path || body.profile_picture || decoded?.picture || null;
-// };
-
 exports.teacherSignUp = asyncHandler(async (req, res, next) => {
   const decoded = req.firebase;
   const existingReq = await TeacherRequest.exists({ firebaseUid: decoded.uid });
@@ -219,3 +206,67 @@ exports.reviewteacherReq = asyncHandler(async (req, res, next) => {
 // @access  Private (Admin)
 
 exports.getAllTeacherRequests = factory.getAll(TeacherRequest);
+
+exports.getAllTeachersShortly = asyncHandler(async (req, res, next) => {
+  const filter = { role: 'teacher', status: 'active' };
+
+  // Optional filters from query parameters
+  if (req.query.gender) filter.gender = req.query.gender;
+
+  if (req.query.qiraat) {
+    filter['teacherProfile.qiraat'] = req.query.qiraat;
+  }
+
+  if (req.query.language) {
+    filter['teacherProfile.languages'] = req.query.language;
+  }
+
+  const teachers = await User.find(filter)
+    .select('name email gender profile_picture teacherProfile')
+    .lean();
+
+  return res.status(200).json({
+    status: 'success',
+    results: teachers.length,
+    data: teachers,
+  });
+});
+
+exports.assignTeacherSpecilaization = asyncHandler(async (req, res, next) => {
+  const { teacherId } = req.params;
+  const { programPreference } = req.body;
+
+  if (!Array.isArray(programPreference)) {
+    return next(new ApiError('specializations must be an array', 400));
+  }
+
+  const teacher = await User.findOne({ _id: teacherId, role: 'teacher' });
+
+  if (!teacher) return next(new ApiError('Teacher not found', 404));
+
+  teacher.teacherProfile.programPreference = programPreference;
+  await teacher.save();
+  res.status(200).json({
+    status: 'success',
+    message: 'Teacher program specialization updated',
+    teacher
+  });
+});
+
+exports.getSpecificTeacherData = factory.getOne(User)
+
+exports.getAllActiveTeachers = asyncHandler(async (req, res, next) => {
+  const teachers = await User.find({ role: 'teacher', status: 'active' })
+    .select('-__v')
+    .lean();
+
+  if (!teachers || teachers.length === 0) {
+    return next(new ApiError('No active teachers found', 404));
+  }
+
+  res.status(200).json({
+    status: 'success',
+    count: teachers.length,
+    data: teachers,
+  });
+});

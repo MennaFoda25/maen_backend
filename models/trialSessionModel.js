@@ -1,13 +1,18 @@
 const mongoose = require('mongoose');
-
+const crypto = require('crypto');
 const trialSessionSchema = new mongoose.Schema(
   {
     program: {
       type: mongoose.Schema.ObjectId,
-      ref: 'CorrectionProgram',
+     // ref: 'programModel',
       required: true,
     },
 
+    programModel: {
+      type: String,
+      required: true,
+      enum: ['CorrectionProgram', 'MemorizationProgram', 'ChildMemorizationProgram'],
+    },
     student: {
       type: mongoose.Schema.ObjectId,
       ref: 'User',
@@ -20,6 +25,7 @@ const trialSessionSchema = new mongoose.Schema(
     },
     duration: {
       type: Number,
+      enum: [15, 30, 45, 60],
       default: 15,
     },
     status: {
@@ -29,17 +35,25 @@ const trialSessionSchema = new mongoose.Schema(
     },
     scheduledAt: Date,
     meetingLink: String,
+ 
+    meetingId: {
+      type: String,
+      unique: true,
+      default: () => crypto.randomBytes(8).toString('hex'), // e.g. “a4f9c2e8d1b0c933”
+    },
     createdAt: {
       type: Date,
       default: Date.now,
     },
-  preferredTimes: {
+    preferredTimes: {
       type: [String],
-     // enum: ['6-9_am', '10-1_pm', '2-5_pm', '6-9_pm', '10-1_am'],
+      // enum: ['6-9_am', '10-1_pm', '2-5_pm', '6-9_pm', '10-1_am'],
     }, // e.g. ['evening', 'afternoon']
-    Days: {
+    days: {
       type: [String],
-      required:true},
+      enum: ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
+      required: true,
+    },
   },
   { toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );

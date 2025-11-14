@@ -1,19 +1,18 @@
 const express = require('express');
 const router = express.Router();
-const { firebaseAuth  } = require('../middlewares/firebaseAuth');
+const { firebaseAuth } = require('../middlewares/firebaseAuth');
 const { allowedTo } = require('../controllers/authServices');
 const { uploadAndAttachAudio } = require('../middlewares/uploadAudioMiddleware');
 const {
   createCorrectionProgram,
   getMyCorrectionProgram,
   getAllCorrectionPrograms,
-  getAllFreeTrials,
 } = require('../controllers/correctionProgramServices');
 const {
   createCorrectionProgramValidator,
 } = require('../utils/validators/correctionProgramValidation');
 
-router.use(firebaseAuth );
+router.use(firebaseAuth);
 router
   .route('/')
   .post(
@@ -22,8 +21,7 @@ router
     createCorrectionProgramValidator,
     createCorrectionProgram
   )
-  .get(allowedTo('student'), getMyCorrectionProgram);
+  .get(allowedTo('student', 'teacher'), getMyCorrectionProgram);
 // Admin / teacher view all
 router.get('/all', allowedTo('admin'), getAllCorrectionPrograms);
-router.get('/trials', allowedTo('admin'), getAllFreeTrials);
 module.exports = router;

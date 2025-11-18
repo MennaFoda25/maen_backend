@@ -181,7 +181,7 @@ exports.reviewteacherReq = asyncHandler(async (req, res, next) => {
     let user = await User.findOne({ email: teacherReq.email });
     if (user) {
       ((user.role = 'teacher'),
-        (user.status = 'approved'),
+        (user.status = 'active'),
         (user.teacherProfile = teacherReq.teacherProfile),
         await user.save());
     } else {
@@ -190,7 +190,7 @@ exports.reviewteacherReq = asyncHandler(async (req, res, next) => {
         email: teacherReq.email,
         name: teacherReq.name,
         role: 'teacher',
-        status: 'approved',
+        status: 'active',
         profile_picture: teacherReq.profile_picture,
         teacherProfile: teacherReq.teacherProfile,
       });
@@ -263,6 +263,23 @@ exports.getAllActiveTeachers = asyncHandler(async (req, res, next) => {
   if (!teachers || teachers.length === 0) {
     return next(new ApiError('No active teachers found', 404));
   }
+
+  res.status(200).json({
+    status: 'success',
+    count: teachers.length,
+    data: teachers,
+  });
+});
+
+
+exports.getTeachersByProgramType = asyncHandler(async (req, res) => {
+  const programId = req.params.id;
+
+  const teachers = await User.find({
+    role: 'teacher',
+    status: 'active',
+    'teacherProfile.programPreference': programId,
+  });
 
   res.status(200).json({
     status: 'success',

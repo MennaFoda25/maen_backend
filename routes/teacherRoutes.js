@@ -9,12 +9,13 @@ const {
 const {
   getAssignedTeacherTrials,
   trialSessionAccept,
+  getTeachersByProgramType
 } = require('../controllers/correctionProgramServices');
 const { allowedTo } = require('../controllers/authServices');
 const {
   getAllFreeTrials,
   getTopTeachers,
-  getProgramTeachers,
+  getProgramTeachers
 } = require('../controllers/programServices');
 const { firebaseAuth } = require('../middlewares/firebaseAuth');
 
@@ -25,7 +26,6 @@ router.route('/brief').get(getAllTeachersShortly);
 router.get('/trials', allowedTo('admin'), getAllFreeTrials);
 router.get('/top', getTopTeachers);
 router.get('/program', getProgramTeachers);
-
 router.get('/all', getAllActiveTeachers);
 router.patch(
   '/assign-program/:teacherId',

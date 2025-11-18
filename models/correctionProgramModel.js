@@ -7,6 +7,11 @@ const correctionProgramSchema = new mongoose.Schema(
       ref: 'User',
       required: true,
     },
+
+        // 🎯 NEW — To match your hardcoded types
+    programTypeId: { type: Number, default: 1 }, // always 1
+    programTypeKey: { type: String, default: "correction" },
+
     assignedTeacher: {
       type: mongoose.Schema.ObjectId,
       ref: 'User',

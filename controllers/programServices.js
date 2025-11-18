@@ -3,7 +3,41 @@ const User = require('../models/userModel');
 const ApiError = require('../utils/apiError');
 const factory = require('./handlerFactory');
 const asyncHandler = require('express-async-handler');
+const ProgramType = require('../models/programTypeModel');
 
+// exports.addPrograms = asyncHandler(async (req, res, next) => {
+//   const { name, key } = req.body;
+//   //const teachers = await User.find({role:'teacher', status:'active', })
+//   const newProgram = await ProgramType.create({ name, key });
+//   res.status(201).json({ Count: newProgram.length, data: newProgram });
+// });
+
+exports.getProgramTypes = asyncHandler(async (req, res, next) => {
+  const programTypes = await ProgramType.find();
+
+  const results = [];
+
+  for (const p of programTypes) {
+    const teachers = await User.find({
+      role: 'teacher',
+      status: 'active',
+      'teacherProfile.programPreference': p._id,
+    }).select('name email profile_picture rating');
+
+    results.push({
+      programType: p,
+      teachers,
+      teacherCount: teachers.length,
+    });
+    await p.save()
+  }
+
+  res.status(200).json({
+    status: 'success',
+    programCount: results.length,
+    data: results,
+  });
+});
 exports.createTrialSession = asyncHandler(async (program, teacherId, studentId, programModel) => {
   if (!teacherId) return null;
 
@@ -77,3 +111,34 @@ exports.getProgramTeachers = asyncHandler(async (req, res, next) => {
     data: teachers,
   });
 });
+
+exports.getTeachersByProgramType = asyncHandler(async (req, res) => {
+  const programId = req.params.id;
+
+  const teachers = await User.find({
+    role: 'teacher',
+    status: 'active',
+    'teacherProfile.programPreference': programId,
+  });
+
+  res.status(200).json({
+    status: 'success',
+    count: teachers.length,
+    data: teachers,
+  });
+});
+
+// exports.getTeacherByProgram = asyncHandler(async (req, res) => {
+//   const programId = req.params.id;
+//   const teacher = await User.find({
+//     role: 'teacher',
+//     status: 'active',
+//     teacherProfile?.programPreference: programId,
+//   })//.select('name email profile_picture rating teacherProfile');
+
+//   res.status(200).json({
+//     status: 'success',
+//     count: teacher.length,
+//     data: teacher,
+//   })
+// })

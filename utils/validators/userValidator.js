@@ -40,7 +40,6 @@ exports.createUserValidator = [
     return true;
   }),
 
-
   check('studentProfile').optional(),
 
   check('phone').optional().isMobilePhone('any').withMessage('Invalid phone number'),
@@ -53,14 +52,14 @@ exports.getUserValidator = [
 ];
 exports.updateUserValidator = [
   check('name')
-    .optional()
+    .optional({ checkFalsy: true })
     .custom((val, { req }) => {
       req.body.slug = slugify(val);
       return true;
     }),
 
   check('email')
-    .optional()
+    .optional({ checkFalsy: true })
     .isEmail()
     .withMessage('Invalid email addres format')
     .custom((val) =>
@@ -70,7 +69,7 @@ exports.updateUserValidator = [
         }
       })
     ),
-  check('phone').optional().isMobilePhone(['any']).withMessage('Invalid phone number'),
+  check('phone').optional({ checkFalsy: true }).isMobilePhone().withMessage('Invalid phone number'),
   validatorMiddleware,
 ];
 

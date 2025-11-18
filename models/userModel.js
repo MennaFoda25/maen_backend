@@ -12,12 +12,10 @@ const teacherSchema = new mongoose.Schema(
     bio: { type: String },
     certificates: [certificateSchema],
     specialties: [String],
-    programPreference: [
-      {
-        type: String,
-        enum: ['CorrectionProgram', 'MemorizationProgram', 'ChildMemorizationProgram'],
-      },
-    ],
+    programPreference: [{
+    type: mongoose.Schema.ObjectId,
+    ref: "ProgramType"
+  }],
     hourly_rate: { type: Number },
     availability_schedule: [String],
   },

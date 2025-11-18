@@ -9,11 +9,11 @@ module.exports = {
   },
   servers: [
     {
-      //url: 'http://localhost:3000/api/v1',
-      url: 'https://maen-backend.onrender.com/api/v1',
-      //description: 'local dev server',
-      description:
-      process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server',
+      url: 'http://localhost:3000/api/v1',
+      //url: 'https://maen-backend.onrender.com/api/v1',
+      description: 'local dev server',
+      //description:
+      //.env.NODE_ENV === 'production' ? 'Production server' : 'Development server',
     },
   ],
   components: {
@@ -23,7 +23,7 @@ module.exports = {
         in: 'header',
         name: 'x-firebase-uid',
         description:
-          'Enter your Firebase UID here. This header replaces Firebase tokens and is required for authenticated routes.',
+          'Enter your Firebase UID here. This header replaces Firebase Uid and is required for authenticated routes.',
       },
     },
     schemas: {
@@ -72,6 +72,7 @@ module.exports = {
           status: { type: 'string', example: 'active' },
         },
       },
+
       TeacherRequest: {
         type: 'object',
         properties: {
@@ -108,6 +109,179 @@ module.exports = {
           completedPages: { type: 'Number' },
         },
       },
+      MemorizationProgram: {
+        type: 'object',
+        properties: {
+          _id: { type: 'string', example: '691c0012ab3cd1234f112233' },
+
+          student: {
+            type: 'string',
+            example: '690f6a32470c4db837fc02a5',
+          },
+
+          assignedTeacher: {
+            type: 'string',
+            example: '68fe72e608a6a18c0ec78d56',
+          },
+
+          planName: { type: 'string', example: 'Hifz Juz Amma Plan' },
+
+          programType: {
+            type: 'string',
+            enum: ['new_memorization', 'memorization_revision', 'revision_consolidation'],
+            example: 'new_memorization',
+          },
+
+          memorizationDirection: {
+            type: 'string',
+            enum: ['fatihah_to_nas', 'nas_to_fatihah'],
+            example: 'fatihah_to_nas',
+          },
+
+          memorizedParts: { type: 'number', example: 0 },
+
+          weeklySessions: { type: 'number', example: 3 },
+          sessionDuration: { type: 'number', example: 30 },
+
+          preferredTimes: {
+            type: 'array',
+            items: { type: 'string' },
+            example: ['6-9_am', '2-5_pm'],
+          },
+
+          days: {
+            type: 'array',
+            items: { type: 'string' },
+            example: ['sunday', 'tuesday', 'thursday'],
+          },
+
+          memorizationRange: {
+            type: 'object',
+            properties: {
+              fromSurah: { type: 'string', example: 'Al-Fatihah' },
+              fromAyah: { type: 'number', example: 1 },
+              toSurah: { type: 'string', example: 'An-Naba' },
+              toAyah: { type: 'number', example: 40 },
+            },
+          },
+
+          pagePerSession: { type: 'number', example: 1 },
+
+          revisionRange: {
+            type: 'object',
+            properties: {
+              fromSurah: { type: 'string', example: 'An-Nas' },
+              fromAyah: { type: 'number', example: 1 },
+              toSurah: { type: 'string', example: 'Al-Falaq' },
+              toAyah: { type: 'number', example: 5 },
+            },
+          },
+
+          revisionPagesPerSession: { type: 'number', example: 0.5 },
+
+          revisionType: {
+            type: 'string',
+            enum: ['daily', 'weekly', 'monthly'],
+            example: 'weekly',
+          },
+
+          status: {
+            type: 'string',
+            enum: ['active', 'completed', 'paused'],
+            example: 'active',
+          },
+
+          createdAt: { type: 'string', format: 'date-time' },
+          updatedAt: { type: 'string', format: 'date-time' },
+        },
+      },
+      ChildMemorizationProgram: {
+        type: 'object',
+        properties: {
+          _id: { type: 'string', example: '691c00bb218cce45f1122445' },
+
+          parent: { type: 'string', example: '690f6a32470c4db837fc02a5' },
+          assignedTeacher: { type: 'string', example: '68fe72e608a6a18c0ec78d56' },
+
+          childName: { type: 'string', example: 'Omar Mohamed' },
+          gender: { type: 'string', enum: ['male', 'female'], example: 'male' },
+          age: { type: 'number', example: 7 },
+
+          hasStudiedBefore: { type: 'boolean', example: true },
+          memorizedParts: { type: 'string', example: 'Juz Amma, Al-Fatihah' },
+
+          readingLevel: {
+            type: 'string',
+            enum: ['no_reading', 'letter_spelling', 'fluent'],
+            example: 'letter_spelling',
+          },
+
+          mainGoal: {
+            type: 'string',
+            enum: ['start_from_zero', 'revision', 'tajweed_improvement'],
+            example: 'start_from_zero',
+          },
+
+          weeklySessions: { type: 'number', example: 3 },
+          sessionDuration: { type: 'number', example: 30 },
+
+          preferredTimes: {
+            type: 'array',
+            items: { type: 'string' },
+            example: ['morning', 'evening'],
+          },
+
+          days: {
+            type: 'array',
+            items: { type: 'string' },
+            example: ['sunday', 'wednesday'],
+          },
+
+          teacherGender: {
+            type: 'string',
+            enum: ['male', 'female'],
+            example: 'female',
+          },
+
+          timeSlots: {
+            type: 'array',
+            items: { type: 'string' },
+            example: ['9-11', '4-7'],
+          },
+
+          notes: { type: 'string', example: 'Shy, struggles with ص' },
+
+          planName: { type: 'string', example: 'Kids Taleqeen Plan' },
+
+          memorizationDirection: {
+            type: 'string',
+            enum: ['fatihah_to_nas', 'nas_to_fatihah'],
+            example: 'fatihah_to_nas',
+          },
+
+          memorizationRange: {
+            type: 'object',
+            properties: {
+              fromSurah: { type: 'string', example: 'Al-Fatihah' },
+              fromAyah: { type: 'number', example: 1 },
+              toSurah: { type: 'string', example: 'An-Nas' },
+              toAyah: { type: 'number', example: 6 },
+            },
+          },
+
+          pagesPerSession: { type: 'number', example: 0.25 },
+
+          status: {
+            type: 'string',
+            enum: ['active', 'completed', 'paused'],
+            example: 'active',
+          },
+
+          createdAt: { type: 'string', format: 'date-time' },
+          updatedAt: { type: 'string', format: 'date-time' },
+        },
+      },
+
       RegisterStudentResponse: {
         type: 'object',
         properties: {
@@ -230,7 +404,7 @@ module.exports = {
     '/auth/me': {
       get: {
         tags: ['Auth'],
-        summary: 'Get current user (requires Authorization: Bearer <Firebase idToken>)',
+        summary: 'Get current user (requires Authorization: Bearer <Firebase Uid>)',
         security: [{ FirebaseUidAuth: [] }],
         responses: {
           200: {
@@ -260,7 +434,7 @@ module.exports = {
       post: {
         tags: ['TeacherRequest'],
         summary:
-          'Create a teacher request (student upgrade OR teacher first-login). Requires Firebase token.',
+          'Create a teacher request (student upgrade OR teacher first-login). Requires Firebase Uid.',
         security: [{ FirebaseUidAuth: [] }],
         requestBody: {
           required: true,
@@ -440,45 +614,53 @@ Supports updating:
             'multipart/form-data': {
               schema: {
                 type: 'object',
+                required: [],
                 properties: {
-                  name: { type: 'string', example: 'Updated Name' },
-                  email: { type: 'string', example: 'updated@gmail.com' },
-                  phone: { type: 'string', example: '+201100200300' },
-                  slug: { type: 'string', example: 'updated-name' },
+                  name: { type: 'string', example: 'Updated Name', nullable: true },
+                  email: { type: 'string', example: 'updated@gmail.com', nullable: true },
+                  phone: { type: 'string', example: '01100200300', nullable: true },
+                  slug: { type: 'string', example: 'updated-name', nullable: true },
                   profile_picture: {
                     type: 'string',
                     format: 'binary',
                     description: 'Optional profile picture',
+                    nullable: true,
                   },
 
                   // Student fields
                   learning_goals: {
                     type: 'string',
                     example: 'Hifz,Tajweed',
+
                     description: 'Comma-separated or array',
+                    nullable: true,
                   },
                   current_level: {
                     type: 'string',
                     example: 'intermediate',
+                    nullable: true,
                   },
 
                   // Teacher fields
-                  bio: { type: 'string', example: 'Experienced Quran tutor' },
+                  bio: { type: 'string', example: 'Experienced Quran tutor', nullable: true },
                   specialties: {
                     type: 'string',
                     example: 'Tajweed,Grammar',
                     description: 'Comma-separated or array',
+                    nullable: true,
                   },
-                  hourly_rate: { type: 'number', example: 20 },
+                  hourly_rate: { type: 'number', example: 20, nullable: true },
                   availability_schedule: {
                     type: 'string',
                     example: 'sunday-10-12,monday-8-10',
                     description: 'Comma-separated or array',
+                    nullable: true,
                   },
                   certificates: {
                     type: 'string',
                     example: 'Ijazah,Certified Tajweed',
                     description: 'Comma-separated or array',
+                    nullable: true,
                   },
                 },
               },
@@ -517,7 +699,7 @@ Supports updating:
       },
       post: {
         tags: ['Admin'],
-        summary: 'Create an admin (requires Firebase token)',
+        summary: 'Create an admin (requires Firebase Uid)',
         description: `
 Creates a new admin user based on Firebase UID.
 Only works if role="admin" is sent in the request body.
@@ -556,7 +738,7 @@ Only works if role="admin" is sent in the request body.
             },
           },
           401: {
-            description: 'Missing Firebase token',
+            description: 'Missing Firebase Uid',
             content: {
               'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } },
             },
@@ -662,29 +844,29 @@ Only works if role="admin" is sent in the request body.
       },
     },
 
-    '/users/changePassword': {
-      put: {
-        tags: ['User'],
-        summary: "Change logged-in user's password (Firebase only)",
-        security: [{ FirebaseUidAuth: [] }],
-        requestBody: {
-          required: true,
-          content: {
-            'application/json': {
-              schema: {
-                type: 'object',
-                properties: { newPassword: { type: 'string', example: '12345678' } },
-              },
-            },
-          },
-        },
-        responses: {
-          200: {
-            description: 'Password changed successfully',
-          },
-        },
-      },
-    },
+    // '/users/changeMyPassword': {
+    //   put: {
+    //     tags: ['User'],
+    //     summary: "Change logged-in user's password (Firebase only)",
+    //     security: [{ FirebaseUidAuth: [] }],
+    //     requestBody: {
+    //       required: true,
+    //       content: {
+    //         'application/json': {
+    //           schema: {
+    //             type: 'object',
+    //             properties: { newPassword: { type: 'string', example: '12345678' } },
+    //           },
+    //         },
+    //       },
+    //     },
+    //     responses: {
+    //       200: {
+    //         description: 'Password changed successfully',
+    //       },
+    //     },
+    //   },
+    // },
     '/users/{id}/suspend': {
       put: {
         tags: ['Admin'],
@@ -896,7 +1078,7 @@ Requires Firebase authentication.
 
     '/programs/correction/all': {
       get: {
-        tags: ['Correction Program (Admin)'],
+        tags: ['Correction Program'],
         summary: 'Get all correction programs (admin only)',
         description: 'Admin endpoint to list all correction programs in the system.',
         security: [{ FirebaseUidAuth: [] }],
@@ -1100,7 +1282,7 @@ Requires Firebase authentication.
             },
           },
           401: {
-            description: 'Unauthorized - missing Firebase token',
+            description: 'Unauthorized - missing Firebase Uid',
             content: {
               'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } },
             },
@@ -1108,9 +1290,9 @@ Requires Firebase authentication.
         },
       },
     },
-    'programs/child/all': {
+    '/programs/child/all': {
       get: {
-        tags: ['Child Memorization Program (Admin)'],
+        tags: ['Child Memorization Program'],
         summary: 'Get all child memorization programs (admin only)',
         description: 'Returns all child memorization programs in the system. Admin only endpoint.',
         security: [{ FirebaseUidAuth: [] }],
@@ -1140,7 +1322,7 @@ Requires Firebase authentication.
             },
           },
           401: {
-            description: 'Unauthorized - Missing or invalid token',
+            description: 'Unauthorized - Missing or invalid Firebase Uid',
             content: {
               'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } },
             },
@@ -1316,7 +1498,7 @@ Requires Firebase authentication.
             },
           },
           401: {
-            description: 'Unauthorized - Missing Firebase token',
+            description: 'Unauthorized - Missing Firebase Uid',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/ErrorResponse' },
@@ -1328,7 +1510,7 @@ Requires Firebase authentication.
     },
     '/programs/memorization/all': {
       get: {
-        tags: ['Memorization Program (Admin)'],
+        tags: ['Memorization Program'],
         summary: 'Get all memorization programs (admin only)',
         description: 'Admin endpoint that returns every memorization program in the system.',
         security: [{ FirebaseUidAuth: [] }],
@@ -1370,6 +1552,102 @@ Requires Firebase authentication.
         },
       },
     },
+    '/programs': {
+      get: {
+        tags: ['Program Types'],
+        summary: 'Get all program types with the teachers assigned to each one',
+        description: 'Returns the 3 program types and the teachers specialized in each one.',
+        security: [{ FirebaseUidAuth: [] }],
+        responses: {
+          200: {
+            description: 'List of program types',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ProgramTypeListResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/programs/{id}": {
+  get: {
+    tags: ["Programs"],
+    summary: "Get teachers assigned to a specific program type",
+    description:
+      "Returns all active teachers whose `programPreference` contains the given program type ID.",
+    security: [{ FirebaseUidAuth: [] }],
+    parameters: [
+      {
+        name: "id",
+        in: "path",
+        required: true,
+        schema: { type: "string" },
+        description: "Program Type ID (ProgramType._id)",
+        example: "691b9db0a54c5ba22b4be2f3"
+      }
+    ],
+    responses: {
+      200: {
+        description: "Teachers assigned to this program type",
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                status: { type: "string", example: "success" },
+                count: { type: "number", example: 1 },
+                data: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      _id: { type: "string", example: "6915e2350b32ecdcf4bacb12" },
+                      name: { type: "string", example: "Aisha Ahmed" },
+                      email: { type: "string", example: "teacher@gmail.com" },
+                      profile_picture: { type: "string" },
+                      rating: { type: "number", example: 4.7 },
+                      teacherProfile: {
+                        type: "object",
+                        properties: {
+                          programPreference: {
+                            type: "array",
+                            items: { type: "string" },
+                            example: [
+                              "691b9db0a54c5ba22b4be2f3",
+                              "691b9de2a54c5ba22b4be2f7"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      404: {
+        description: "No teachers found for this program type",
+        content: {
+          "application/json": {
+            schema: { $ref: "#/components/schemas/ErrorResponse" }
+          }
+        }
+      },
+      401: {
+        description: "Unauthorized",
+        content: {
+          "application/json": {
+            schema: { $ref: "#/components/schemas/ErrorResponse" }
+          }
+        }
+      }
+    }
+  }
+},
+
 
     '/teachers/Mytrials': {
       get: {
@@ -1711,62 +1989,62 @@ Only accessible by admin users.
         },
       },
     },
-    '/teachers/by-program': {
-      get: {
-        tags: ['Teachers'],
-        summary: 'Get teachers specialized in a specific program',
-        description:
-          'Returns teachers who have selected this program in their programPreference array.',
-        security: [{ FirebaseUidAuth: [] }],
-        parameters: [
-          {
-            name: 'program',
-            in: 'query',
-            required: true,
-            schema: {
-              type: 'string',
-              enum: ['CorrectionProgram', 'MemorizationProgram', 'ChildMemorizationProgram'],
-            },
-            example: 'MemorizationProgram',
-          },
-        ],
-        responses: {
-          200: {
-            description: 'List of teachers specialized in this program',
-            content: {
-              'application/json': {
-                schema: {
-                  type: 'object',
-                  properties: {
-                    status: { type: 'string', example: 'success' },
-                    count: { type: 'number', example: 3 },
-                    data: {
-                      type: 'array',
-                      items: {
-                        type: 'object',
-                        properties: {
-                          _id: { type: 'string' },
-                          name: { type: 'string' },
-                          email: { type: 'string' },
-                          rating: { type: 'number' },
-                          ratingCount: { type: 'number' },
-                          teacherProfile: {
-                            type: 'object',
-                            properties: {
-                              programPreference: { type: 'array', items: { type: 'string' } },
-                            },
-                          },
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
+    // '/teachers/by-program': {
+    //   get: {
+    //     tags: ['Teachers'],
+    //     summary: 'Get teachers specialized in a specific program',
+    //     description:
+    //       'Returns teachers who have selected this program in their programPreference array.',
+    //     security: [{ FirebaseUidAuth: [] }],
+    //     parameters: [
+    //       {
+    //         name: 'program',
+    //         in: 'query',
+    //         required: true,
+    //         schema: {
+    //           type: 'string',
+    //           enum: ['CorrectionProgram', 'MemorizationProgram', 'ChildMemorizationProgram'],
+    //         },
+    //         example: 'MemorizationProgram',
+    //       },
+    //     ],
+    //     responses: {
+    //       200: {
+    //         description: 'List of teachers specialized in this program',
+    //         content: {
+    //           'application/json': {
+    //             schema: {
+    //               type: 'object',
+    //               properties: {
+    //                 status: { type: 'string', example: 'success' },
+    //                 count: { type: 'number', example: 3 },
+    //                 data: {
+    //                   type: 'array',
+    //                   items: {
+    //                     type: 'object',
+    //                     properties: {
+    //                       _id: { type: 'string' },
+    //                       name: { type: 'string' },
+    //                       email: { type: 'string' },
+    //                       rating: { type: 'number' },
+    //                       ratingCount: { type: 'number' },
+    //                       teacherProfile: {
+    //                         type: 'object',
+    //                         properties: {
+    //                           programPreference: { type: 'array', items: { type: 'string' } },
+    //                         },
+    //                       },
+    //                     },
+    //                   },
+    //                 },
+    //               },
+    //             },
+    //           },
+    //         },
+    //       },
+    //     },
+    //   },
+    // },
     '/teachers/top': {
       get: {
         tags: ['Teachers'],
@@ -2046,12 +2324,12 @@ Valid program preferences:
                     items: {
                       type: 'string',
                       enum: [
-                        'CorrectionProgram',
-                        'MemorizationProgram',
-                        'ChildMemorizationProgram',
+                        '691b9db0a54c5ba22b4be2f3',
+                        '691b9de2a54c5ba22b4be2f7',
+                        '691b9df3a54c5ba22b4be2fb',
                       ],
                     },
-                    example: ['MemorizationProgram', 'ChildMemorizationProgram'],
+                    example: ['691b9df3a54c5ba22b4be2fb'],
                   },
                 },
                 required: ['programPreference'],

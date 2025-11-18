@@ -41,6 +41,13 @@ exports.updateUser = asyncHandler(async (req, res, next) => {
       new ApiError('You cannot update password from here, please use /changeMyPassword route', 400)
     );
   }
+  // Remove empty strings that Swagger sends
+Object.keys(req.body).forEach((key) => {
+  if (req.body[key] === '') {
+    delete req.body[key];
+  }
+});
+
   const allowedFields = ['name', 'slug', 'phone', 'email', 'profile_picture'];
   const updateData = {};
 

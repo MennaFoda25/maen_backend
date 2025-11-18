@@ -15,7 +15,8 @@ const { allowedTo } = require('../controllers/authServices');
 const {
   getAllFreeTrials,
   getTopTeachers,
-  getProgramTeachers
+  getProgramTeachers,
+  getTeacherSchedulesById
 } = require('../controllers/programServices');
 const { firebaseAuth } = require('../middlewares/firebaseAuth');
 
@@ -34,5 +35,6 @@ router.patch(
   assignTeacherSpecilaization
 );
 router.route('/:id').patch(allowedTo('teacher'), trialSessionAccept).get(getSpecificTeacherData);
+router.get('/:id/schedules',allowedTo('student','admin'), getTeacherSchedulesById);
 
 module.exports = router;

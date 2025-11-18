@@ -9,11 +9,11 @@ module.exports = {
   },
   servers: [
     {
-      //url: 'http://localhost:3000/api/v1',
+     // url: 'http://localhost:3000/api/v1',
       url: 'https://maen-backend.onrender.com/api/v1',
      // description: 'local dev server',
       description:
-      env.NODE_ENV === 'production' ? 'Production server' : 'Development server',
+      process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server',
     },
   ],
   components: {
@@ -1647,6 +1647,62 @@ Requires Firebase authentication.
     }
   }
 },
+    "/programs/student/myPrograms":{
+       get: {
+    tags: ["Programs"],
+    summary: "Get all programs for the logged-in student",
+    description: `
+Returns all programs belonging to the authenticated student:
+- Memorization Programs
+- Correction Programs
+- Child Memorization Programs
+`,
+    security: [{ FirebaseUidAuth: [] }],
+
+    responses: {
+      200: {
+        description: "List of all programs for the logged-in student",
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                status: { type: "string", example: "success" },
+                count: { type: "number", example: 3 },
+                data: {
+                  type: "object",
+                  properties: {
+                    memorizationPrograms: {
+                      type: "array",
+                      items: { $ref: "#/components/schemas/MemorizationProgram" }
+                    },
+                    correctionPrograms: {
+                      type: "array",
+                      items: { $ref: "#/components/schemas/CorrectionProgram" }
+                    },
+                    childPrograms: {
+                      type: "array",
+                      items: { $ref: "#/components/schemas/ChildMemorizationProgram" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+
+      401: {
+        description: "Unauthorized - missing or invalid Firebase token",
+        content: {
+          "application/json": {
+            schema: { $ref: "#/components/schemas/ErrorResponse" }
+          }
+        }
+      }
+    }
+  }
+},
 
 
     '/teachers/Mytrials': {
@@ -1919,6 +1975,56 @@ Only accessible by admin users.
           },
         },
       },
+    },
+    '/teachers/{id}/schedules':{
+      get:{
+        tags:['Teachers'],
+        summary:'Get teacher schedule by ID',
+        description:'Returns the availability schedule of a specific teacher by their ID.',
+        security:[{FirebaseUidAuth:[]}],
+        parameters:[
+                    {
+            name: 'id',
+            in: 'path',
+            required: true,
+            description: 'Teacher ID to get schedule',
+            schema: { type: 'string', example: '690a3f18e09ab30fc38467f8' },
+          },
+        ],
+        responses:{
+          200:{
+            description:'Teacher schedule retrieved successfully',
+            content:{
+              'application/json':{
+                schema:{
+                  type:'object',
+                  properties:{
+                       availability_schedule: {
+                              type: 'array',
+                              items: { type: 'string' },
+                              example: ['sunday 10-1 pm', 'monday 6-9 pm'],
+                     },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              
+            
+             404: {
+              description: 'Teacher not found',
+              content: {
+                'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } },
+              },
+            },
+              403: {
+              description: 'Forbidden — only admin can access this endpoint',
+              content: {
+                'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } },
+             },
+            },
+          },
     },
     '/sessions/book': {
       post: {

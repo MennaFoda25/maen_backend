@@ -4,6 +4,9 @@ const ApiError = require('../utils/apiError');
 const factory = require('./handlerFactory');
 const asyncHandler = require('express-async-handler');
 const ProgramType = require('../models/programTypeModel');
+const MemorizationProgram = require('../models/memorizationProgramModel');
+const CorrectionProgram = require('../models/correctionProgramModel');
+const ChildProgram = require('../models/childMemoProgramModel');
 
 // exports.addPrograms = asyncHandler(async (req, res, next) => {
 //   const { name, key } = req.body;
@@ -29,7 +32,7 @@ exports.getProgramTypes = asyncHandler(async (req, res, next) => {
       teachers,
       teacherCount: teachers.length,
     });
-    await p.save()
+    await p.save();
   }
 
   res.status(200).json({
@@ -60,12 +63,6 @@ exports.createTrialSession = asyncHandler(async (program, teacherId, studentId, 
 });
 
 exports.getAllFreeTrials = factory.getAll(TrialSession);
-
-// exports.getDedicatedTeachers = asyncHandler(async (req, res, next) => {
-//   const { programPreference } = req.body;
-
-//   const teachers = await User.find({ programPreference });
-// });
 
 exports.getTopTeachers = asyncHandler(async (req, res, next) => {
   // 1) fetch all teachers with ratings
@@ -128,17 +125,34 @@ exports.getTeachersByProgramType = asyncHandler(async (req, res) => {
   });
 });
 
-// exports.getTeacherByProgram = asyncHandler(async (req, res) => {
-//   const programId = req.params.id;
-//   const teacher = await User.find({
-//     role: 'teacher',
-//     status: 'active',
-//     teacherProfile?.programPreference: programId,
-//   })//.select('name email profile_picture rating teacherProfile');
+exports.getAllLoggedStudentPrograms = asyncHandler(async (req, res, next) => {
+  const studentId = req.user._id;
+  const memorizationPrograms = await MemorizationProgram.find({ student: studentId }).select(
+    '-__v'
+  );
+  const correctionPrograms = await CorrectionProgram.find({ student: studentId }).select('-__v');
+  const childPrograms = await ChildProgram.find({ parent: studentId }).select('-__v');
 
-//   res.status(200).json({
-//     status: 'success',
-//     count: teacher.length,
-//     data: teacher,
-//   })
-// })
+  res.status(200).json({
+    status: 'success',
+    count: memorizationPrograms.length + correctionPrograms.length + childPrograms.length,
+    data: {
+      memorizationPrograms,
+      correctionPrograms,
+      childPrograms,
+    },
+  });
+});
+
+exports.getTeacherSchedulesById = asyncHandler(async (req, res, next) => {
+  const teacherId = req.params.id;
+
+  const teacher = await User.findOne({ _id: teacherId, role: 'teacher', status: 'active' });
+
+  if (!teacher) return next(new ApiError('Teacher not found', 404));
+
+  res.status(200).json({
+    status: 'success',
+    data: teacher.teacherProfile.availability_schedule,
+  });
+});

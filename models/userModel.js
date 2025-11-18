@@ -12,10 +12,12 @@ const teacherSchema = new mongoose.Schema(
     bio: { type: String },
     certificates: [certificateSchema],
     specialties: [String],
-    programPreference: [{
-    type: mongoose.Schema.ObjectId,
-    ref: "ProgramType"
-  }],
+    programPreference: [
+      {
+        type: mongoose.Schema.ObjectId,
+        ref: 'ProgramType',
+      },
+    ],
     hourly_rate: { type: Number },
     availability_schedule: [String],
   },
@@ -75,11 +77,10 @@ const userSchema = new mongoose.Schema(
     teacherProfile: teacherSchema,
     studentProfile: studentSchema,
     createdAt: { type: Date, default: Date.now },
-    rating: { type: Number, default: 0 },       // average rating (0–5)
-ratingCount: { type: Number, default: 0 }   // number of ratings
-
+    rating: { type: Number, default: 0 }, // average rating (0–5)
+    ratingCount: { type: Number, default: 0 }, // number of ratings
   },
-  
+
   {
     toJSON: { virtuals: true },
     toObject: { virtuals: true },

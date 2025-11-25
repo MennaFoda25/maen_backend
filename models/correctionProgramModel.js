@@ -12,7 +12,7 @@ const correctionProgramSchema = new mongoose.Schema(
     programTypeId: { type: Number, default: 1 }, // always 1
     programTypeKey: { type: String, default: "correction" },
 
-    assignedTeacher: {
+    teacher: {
       type: mongoose.Schema.ObjectId,
       ref: 'User',
     },
@@ -31,7 +31,7 @@ const correctionProgramSchema = new mongoose.Schema(
       enum: ['beginner', 'intermediate', 'advanced'],
       required: [true, 'Level is required'],
     },
-    sessionsPerWeek: {
+    weeklySessions: {
       type: Number,
       enum: [1, 2, 3, 4, 5],
       required: [true, 'Number of weekly sessions is required'],
@@ -45,11 +45,11 @@ const correctionProgramSchema = new mongoose.Schema(
       type: [String],
      // enum: ['6-9_am', '10-1_pm', '2-5_pm', '6-9_pm', '10-1_am'],
     }, // e.g. ['evening', 'afternoon']
-    Days: {
+    days: {
       type: [String],
-      required:true
-     // enum: ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
-      //validate: [(arr) => arr.length <= 5, 'Cannot select more than 5 days'],
+      required:true,
+      enum: ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
+      validate: [(arr) => arr.length <= 5, 'Cannot select more than 5 days'],
     },
     planName: {
       type: String,
@@ -71,6 +71,11 @@ const correctionProgramSchema = new mongoose.Schema(
       min: 0.25,
       max: 5,
       default: 1,
+    },
+      packageDuration:{
+      type:Number,
+      enum:[1,3,6],
+      required:true
     },
     totalPages: {
       type: Number,

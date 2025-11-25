@@ -9,11 +9,11 @@ module.exports = {
   },
   servers: [
     {
-     // url: 'http://localhost:3000/api/v1',
+      // url: 'http://localhost:3000/api/v1',
       url: 'https://maen-backend.onrender.com/api/v1',
-     // description: 'local dev server',
+      // description: 'local dev server',
       description:
-      process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server',
+        process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server',
     },
   ],
   components: {
@@ -86,6 +86,45 @@ module.exports = {
           updatedAt: { type: 'string', format: 'date-time' },
         },
       },
+      Session: {
+        type: 'object',
+        properties: {
+          _id: { type: 'string', example: '692453c40f6b9fbcbbb7f466' },
+          program: { type: 'string' },
+          programModel: { type: 'string', example: 'MemorizationProgram' },
+          student: { type: 'string' },
+          teacher: { type: 'string' },
+          type: { type: 'string', enum: ['trial', 'program'] },
+          status: { type: 'string', enum: ['pending', 'scheduled', 'started', 'completed'] },
+          duration: { type: 'number', example: 30 },
+          scheduledAt: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                day: { type: 'string', example: 'sunday' },
+                slots: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: { start: { type: 'string', example: '18:00' } },
+                  },
+                },
+              },
+            },
+          },
+          createdAt: { type: 'string' },
+        },
+      },
+
+      ErrorResponse: {
+        type: 'object',
+        properties: {
+          status: { type: 'string', example: 'error' },
+          message: { type: 'string', example: 'Invalid input' },
+        },
+      },
+
       CorrectionProgram: {
         type: 'object',
         properties: {
@@ -1570,140 +1609,136 @@ Requires Firebase authentication.
         },
       },
     },
-    "/programs/{id}": {
-  get: {
-    tags: ["Programs"],
-    summary: "Get teachers assigned to a specific program type",
-    description:
-      "Returns all active teachers whose `programPreference` contains the given program type ID.",
-    security: [{ FirebaseUidAuth: [] }],
-    parameters: [
-      {
-        name: "id",
-        in: "path",
-        required: true,
-        schema: { type: "string" },
-        description: "Program Type ID (ProgramType._id)",
-        example: "691b9db0a54c5ba22b4be2f3"
-      }
-    ],
-    responses: {
-      200: {
-        description: "Teachers assigned to this program type",
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              properties: {
-                status: { type: "string", example: "success" },
-                count: { type: "number", example: 1 },
-                data: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      _id: { type: "string", example: "6915e2350b32ecdcf4bacb12" },
-                      name: { type: "string", example: "Aisha Ahmed" },
-                      email: { type: "string", example: "teacher@gmail.com" },
-                      profile_picture: { type: "string" },
-                      rating: { type: "number", example: 4.7 },
-                      teacherProfile: {
-                        type: "object",
+    '/programs/{id}': {
+      get: {
+        tags: ['Programs'],
+        summary: 'Get teachers assigned to a specific program type',
+        description:
+          'Returns all active teachers whose `programPreference` contains the given program type ID.',
+        security: [{ FirebaseUidAuth: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Program Type ID (ProgramType._id)',
+            example: '691b9db0a54c5ba22b4be2f3',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Teachers assigned to this program type',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string', example: 'success' },
+                    count: { type: 'number', example: 1 },
+                    data: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
                         properties: {
-                          programPreference: {
-                            type: "array",
-                            items: { type: "string" },
-                            example: [
-                              "691b9db0a54c5ba22b4be2f3",
-                              "691b9de2a54c5ba22b4be2f7"
-                            ]
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
+                          _id: { type: 'string', example: '6915e2350b32ecdcf4bacb12' },
+                          name: { type: 'string', example: 'Aisha Ahmed' },
+                          email: { type: 'string', example: 'teacher@gmail.com' },
+                          profile_picture: { type: 'string' },
+                          rating: { type: 'number', example: 4.7 },
+                          teacherProfile: {
+                            type: 'object',
+                            properties: {
+                              programPreference: {
+                                type: 'array',
+                                items: { type: 'string' },
+                                example: ['691b9db0a54c5ba22b4be2f3', '691b9de2a54c5ba22b4be2f7'],
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          404: {
+            description: 'No teachers found for this program type',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          401: {
+            description: 'Unauthorized',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
       },
-      404: {
-        description: "No teachers found for this program type",
-        content: {
-          "application/json": {
-            schema: { $ref: "#/components/schemas/ErrorResponse" }
-          }
-        }
-      },
-      401: {
-        description: "Unauthorized",
-        content: {
-          "application/json": {
-            schema: { $ref: "#/components/schemas/ErrorResponse" }
-          }
-        }
-      }
-    }
-  }
-},
-    "/programs/student/myPrograms":{
-       get: {
-    tags: ["Programs"],
-    summary: "Get all programs for the logged-in student",
-    description: `
+    },
+    '/programs/student/myPrograms': {
+      get: {
+        tags: ['Programs'],
+        summary: 'Get all programs for the logged-in student',
+        description: `
 Returns all programs belonging to the authenticated student:
 - Memorization Programs
 - Correction Programs
 - Child Memorization Programs
 `,
-    security: [{ FirebaseUidAuth: [] }],
+        security: [{ FirebaseUidAuth: [] }],
 
-    responses: {
-      200: {
-        description: "List of all programs for the logged-in student",
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              properties: {
-                status: { type: "string", example: "success" },
-                count: { type: "number", example: 3 },
-                data: {
-                  type: "object",
+        responses: {
+          200: {
+            description: 'List of all programs for the logged-in student',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
                   properties: {
-                    memorizationPrograms: {
-                      type: "array",
-                      items: { $ref: "#/components/schemas/MemorizationProgram" }
+                    status: { type: 'string', example: 'success' },
+                    count: { type: 'number', example: 3 },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        memorizationPrograms: {
+                          type: 'array',
+                          items: { $ref: '#/components/schemas/MemorizationProgram' },
+                        },
+                        correctionPrograms: {
+                          type: 'array',
+                          items: { $ref: '#/components/schemas/CorrectionProgram' },
+                        },
+                        childPrograms: {
+                          type: 'array',
+                          items: { $ref: '#/components/schemas/ChildMemorizationProgram' },
+                        },
+                      },
                     },
-                    correctionPrograms: {
-                      type: "array",
-                      items: { $ref: "#/components/schemas/CorrectionProgram" }
-                    },
-                    childPrograms: {
-                      type: "array",
-                      items: { $ref: "#/components/schemas/ChildMemorizationProgram" }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
+                  },
+                },
+              },
+            },
+          },
+
+          401: {
+            description: 'Unauthorized - missing or invalid Firebase token',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
       },
-
-      401: {
-        description: "Unauthorized - missing or invalid Firebase token",
-        content: {
-          "application/json": {
-            schema: { $ref: "#/components/schemas/ErrorResponse" }
-          }
-        }
-      }
-    }
-  }
-},
-
+    },
 
     '/teachers/Mytrials': {
       get: {
@@ -1976,14 +2011,14 @@ Only accessible by admin users.
         },
       },
     },
-    '/teachers/{id}/schedules':{
-      get:{
-        tags:['Teachers'],
-        summary:'Get teacher schedule by ID',
-        description:'Returns the availability schedule of a specific teacher by their ID.',
-        security:[{FirebaseUidAuth:[]}],
-        parameters:[
-                    {
+    '/teachers/{id}/schedules': {
+      get: {
+        tags: ['Teachers'],
+        summary: 'Get teacher schedule by ID',
+        description: 'Returns the availability schedule of a specific teacher by their ID.',
+        security: [{ FirebaseUidAuth: [] }],
+        parameters: [
+          {
             name: 'id',
             in: 'path',
             required: true,
@@ -1991,47 +2026,53 @@ Only accessible by admin users.
             schema: { type: 'string', example: '690a3f18e09ab30fc38467f8' },
           },
         ],
-        responses:{
-          200:{
-            description:'Teacher schedule retrieved successfully',
-            content:{
-              'application/json':{
-                schema:{
-                  type:'object',
-                  properties:{
-                       availability_schedule: {
-                              type: 'array',
-                              items: { type: 'string' },
-                              example: ['sunday 10-1 pm', 'monday 6-9 pm'],
-                     },
-                          },
-                        },
-                      },
+        responses: {
+          200: {
+            description: 'Teacher schedule retrieved successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    availability_schedule: {
+                      type: 'array',
+                      items: { type: 'string' },
+                      example: ['sunday 10-1 pm', 'monday 6-9 pm'],
                     },
                   },
                 },
-              
-            
-             404: {
-              description: 'Teacher not found',
-              content: {
-                'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } },
               },
             },
-              403: {
-              description: 'Forbidden — only admin can access this endpoint',
-              content: {
-                'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } },
-             },
-            },
           },
+        },
+
+        404: {
+          description: 'Teacher not found',
+          content: {
+            'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } },
+          },
+        },
+        403: {
+          description: 'Forbidden — only admin can access this endpoint',
+          content: {
+            'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } },
+          },
+        },
+      },
     },
     '/sessions/book': {
       post: {
         tags: ['Sessions'],
-        summary: 'Book a new session between student and teacher',
-        description:
-          'Creates a scheduled session for any program (Correction, Memorization, Kids). Checks for time overlap and returns meetingId.',
+        summary: 'Book a single program session',
+        description: `
+Allows a student to book one program session from the teacher’s availability schedule.
+
+Validations:
+- Program must exist
+- Teacher must be active
+- Teacher must be available on selected day & time
+- Slot becomes unavailable after booking
+    `,
         security: [{ FirebaseUidAuth: [] }],
         requestBody: {
           required: true,
@@ -2039,26 +2080,46 @@ Only accessible by admin users.
             'application/json': {
               schema: {
                 type: 'object',
+                required: ['programId', 'programModel', 'teacherId', 'scheduledAt'],
                 properties: {
-                  programId: { type: 'string', example: '6914fccda2a8b969c624472a' },
-                  programType: {
+                  programId: {
+                    type: 'string',
+                    example: '69236fced2012ed375e9b2fa',
+                  },
+                  programModel: {
                     type: 'string',
                     enum: ['CorrectionProgram', 'MemorizationProgram', 'ChildMemorizationProgram'],
-                    example: 'CorrectionProgram',
+                    example: 'MemorizationProgram',
                   },
-                  teacherId: { type: 'string', example: '68fe72e608a6a18c0ec78d56' },
-                  scheduledAt: {
+                  teacherId: {
                     type: 'string',
-                    format: 'date-time',
-                    example: '2025-11-20T16:00:00.000Z',
+                    example: '692452a29f5bb77c1807ad50',
                   },
-                  duration: {
-                    type: 'number',
-                    enum: [15, 30, 45, 60],
-                    example: 30,
+                  scheduledAt: {
+                    type: 'object',
+                    description: 'Slot format selected from teacher availability',
+                    properties: {
+                      day: {
+                        type: 'string',
+                        enum: [
+                          'sunday',
+                          'monday',
+                          'tuesday',
+                          'wednesday',
+                          'thursday',
+                          'friday',
+                          'saturday',
+                        ],
+                        example: 'sunday',
+                      },
+                      start: {
+                        type: 'string',
+                        example: '18:00',
+                        description: "Must match a teacher's available slot start time",
+                      },
+                    },
                   },
                 },
-                required: ['programId', 'programType', 'teacherId', 'scheduledAt'],
               },
             },
           },
@@ -2073,28 +2134,95 @@ Only accessible by admin users.
                   properties: {
                     status: { type: 'string', example: 'success' },
                     message: { type: 'string', example: 'Session booked successfully' },
-                    meetingId: { type: 'string', example: 'a94f3bd112acd8e7' },
-                    session: {
-                      type: 'object',
-                      properties: {
-                        _id: { type: 'string', example: '6914bf12b1f58a0012cd7712' },
-                        scheduledAt: { type: 'string', format: 'date-time' },
-                      },
-                    },
+                    session: { $ref: '#/components/schemas/Session' },
                   },
                 },
               },
             },
           },
           400: {
-            description: 'Validation or overlap error',
+            description: 'Validation or scheduling error',
             content: {
-              'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } },
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
             },
           },
         },
       },
     },
+    '/sessions/{id}/start': {
+      patch: {
+        tags: ['Sessions'],
+        summary: 'Mark session as started',
+        description: 'Teacher or student marks the session as started.',
+        security: [{ FirebaseUidAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Session ID',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Session has started',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string', example: 'success' },
+                    message: { type: 'string', example: 'Session has started' },
+                    data: { $ref: '#/components/schemas/Session' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/sessions/{id}/complete': {
+      patch: {
+        tags: ['Sessions'],
+        summary: 'Mark session as completed',
+        description: `
+Teacher or student marks a session as completed.
+Automatically adds session.duration minutes to teacher.fulfilledMinutes.
+    `,
+        security: [{ FirebaseUidAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Session ID',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Session completed',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string', example: 'success' },
+                    message: { type: 'string', example: 'Session marked as completed' },
+                    data: { $ref: '#/components/schemas/Session' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+
     // '/teachers/by-program': {
     //   get: {
     //     tags: ['Teachers'],

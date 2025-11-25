@@ -2,9 +2,9 @@ const asyncHandler = require('express-async-handler');
 const ApiError = require('../utils/apiError');
 const ChildProgram = require('../models/childMemoProgramModel');
 const User = require('../models/userModel');
-const TrialSession = require('../models/trialSessionModel');
-const { createTrialSession } = require('../controllers/programServices'); // reuse
-const factory = require('./handlerFactory')
+const Session = require('../models/sessionModel');
+const factory = require('./handlerFactory');
+const { createTrialSession } = require('./sessionServices');
 
 // Helper to safely convert strings or arrays into array of strings
 const toArray = (value) => {
@@ -33,7 +33,7 @@ exports.createChildMemProgram = asyncHandler(async (req, res, next) => {
     mainGoal: req.body.mainGoal,
     weeklySessions: req.body.weeklySessions,
     sessionDuration: req.body.sessionDuration,
-    days:toArray(req.body.days),
+    days: toArray(req.body.days),
     preferredTimes: toArray(req.body.preferredTimes),
     teacherGender: req.body.teacherGender,
     notesForTeacher: req.body.notesForTeacher,
@@ -49,45 +49,53 @@ exports.createChildMemProgram = asyncHandler(async (req, res, next) => {
     facesPerSession: req.body.facesPerSession,
     totalFaces: req.body.totalFaces || 0,
     completedFaces: req.body.completedFaces || 0,
-    assignedTeacher:req.body.assignedTeacher,
+    teacher: req.body.teacher,
+    packageDuration: req.body.packageDuration,
     allowTrial: req.body.allowTrial !== undefined ? req.body.allowTrial : true,
   };
 
-  const program = await ChildProgram.create(payload);
+  const newProgram = await ChildProgram.create(payload);
 
   // Optional: create a trial session if requested and a teacher chosen
-  let trial = null;
-    const programData = await ChildProgram.findById(program._id);
-    trial = await TrialSession.create({
-      program: program._id,
+  let populatedTrial = null;
+  //const programData = await ChildProgram.findById(program._id);
+ if (req.body.trialSession && req.body.teacher) {
+    const trial = await createTrialSession({
+      programId: newProgram._id,
       programModel: 'ChildMemorizationProgram',
-      student: parent._id,
-      teacher: program.assignedTeacher._id,
-      duration: 15,
-      status: 'pending',
-      preferredTimes: program.preferredTimes || [],
-      days: program.days || [],
+      studentId: req.user._id,
+      teacherId: newProgram.teacher,
+      preferredTimes: newProgram.preferredTimes,
+      days: newProgram.days,
     });
-  
 
-  const populated = await ChildProgram.findById(program._id)
+    populatedTrial = (await trial)
+      ? await Session.findById(trial._id)
+          .populate('student', 'name email')
+          .populate('teacher', 'name email')
+      : null;
+    //   const teacherId = req.body.teacher || req.body.assignedTeacher;
+    //   // trial = await createTrialSession(newProgram, teacherId, req.user._id, 'MemorizationProgram');
+  }
+
+  const populated = await ChildProgram.findById(newProgram._id)
     .populate('parent', 'name email')
-    .populate('assignedTeacher', 'name email');
+    .populate('teacher', 'name email');
 
   res.status(201).json({
     status: 'success',
     message: 'Child memorization program created',
     data: {
       program: populated,
-      trialSession: trial
-        ? await TrialSession.findById(trial._id).populate('teacher student', 'name email')
-        : null,
+      trialSession: populatedTrial
+      //  ? await Session.findById(trial._id).populate('teacher student', 'name email')
+      //  : null,
     },
   });
 });
 
-exports.getMyChildPrograms = asyncHandler(async(req,res,next)=>{
-   const { _id, role } = req.user;
+exports.getMyChildPrograms = asyncHandler(async (req, res, next) => {
+  const { _id, role } = req.user;
 
   // Determine filter & population based on role
   let filter = {};
@@ -125,5 +133,5 @@ exports.getMyChildPrograms = asyncHandler(async(req,res,next)=>{
     role,
     data: programs,
   });
-})
-exports.getAllChildPrograms = factory.getAll(ChildProgram)
+});
+exports.getAllChildPrograms = factory.getAll(ChildProgram);

@@ -1,10 +1,15 @@
 const mongoose = require('mongoose');
 const crypto = require('crypto');
-const trialSessionSchema = new mongoose.Schema(
+const sessionSchema = new mongoose.Schema(
   {
+    type: {
+      type: String,
+      enum: ['trial', 'program'],
+      // required: true,
+    },
     program: {
       type: mongoose.Schema.ObjectId,
-     // ref: 'programModel',
+      // ref: 'programModel',
       required: true,
     },
 
@@ -30,12 +35,24 @@ const trialSessionSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['pending', 'scheduled', 'completed', 'cancelled'],
+      enum: ['pending', 'scheduled','started', 'completed', 'cancelled'],
       default: 'pending',
     },
-    scheduledAt: Date,
+    scheduledAt: [
+      {
+        day: {
+          type: String,
+          enum: ['saturday', 'sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+        },
+        slots: [
+          {
+            start: { type: String, required: true }, // "14:00"
+          },
+        ],
+      },
+    ],
     meetingLink: String,
- 
+
     meetingId: {
       type: String,
       unique: true,
@@ -54,9 +71,11 @@ const trialSessionSchema = new mongoose.Schema(
       enum: ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
       required: true,
     },
+    completedAt: Date,
+    startedAt:Date
   },
-  { toJSON: { virtuals: true }, toObject: { virtuals: true } }
+  { toJSON: { virtuals: true }, toObject: { virtuals: true }, timestamps: true }
 );
 
-const TrialSession = mongoose.model('TrialSession', trialSessionSchema);
-module.exports = TrialSession;
+const Session = mongoose.model('Session', sessionSchema);
+module.exports = Session;

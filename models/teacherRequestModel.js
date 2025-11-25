@@ -49,7 +49,7 @@ const teacherRequestSchema = new mongoose.Schema(
       certificates: [
         {
           fileUrl: { type: String },
-          fileName: { type: String , required: true},
+          fileName: { type: String, required: true },
         },
       ],
 
@@ -89,10 +89,10 @@ const teacherRequestSchema = new mongoose.Schema(
             type: String,
             enum: ['saturday', 'sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
           },
-          timeSlots: [
+          slots: [
             {
-              from: String,
-              to: String,
+              start: { type: String, required: true }, // "14:00"
+              end: { type: String, required: true }, // "15:30"
             },
           ],
         },

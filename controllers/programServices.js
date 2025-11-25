@@ -1,4 +1,4 @@
-const TrialSession = require('../models/trialSessionModel');
+const Session = require('../models/sessionModel');
 const User = require('../models/userModel');
 const ApiError = require('../utils/apiError');
 const factory = require('./handlerFactory');
@@ -50,7 +50,7 @@ exports.createTrialSession = asyncHandler(async (program, teacherId, studentId, 
     return next(new ApiError('Selected teacher is not available', 403));
   }
 
-  const trial = await TrialSession.create({
+  const trial = await Session.create({
     program: program._id,
     programModel,
     student: studentId,
@@ -62,7 +62,7 @@ exports.createTrialSession = asyncHandler(async (program, teacherId, studentId, 
   return trial;
 });
 
-exports.getAllFreeTrials = factory.getAll(TrialSession);
+exports.getAllFreeTrials = factory.getAll(Session);
 
 exports.getTopTeachers = asyncHandler(async (req, res, next) => {
   // 1) fetch all teachers with ratings
@@ -153,6 +153,6 @@ exports.getTeacherSchedulesById = asyncHandler(async (req, res, next) => {
 
   res.status(200).json({
     status: 'success',
-    data: teacher.teacherProfile.availability_schedule,
+    data: teacher.teacherProfile.availabilitySchedule,
   });
 });

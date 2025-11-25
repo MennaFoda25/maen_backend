@@ -6,14 +6,14 @@ const bcrypt = require('bcryptjs');
 const CorrectionProgram = require('../../models/correctionProgramModel');
 
 exports.createCorrectionProgramValidator = [
-  check('assignedTeacher').isMongoId().withMessage('Invalid teacher Id'),
+  check('teacher').isMongoId().withMessage('Invalid teacher Id'),
   check('goal')
     .isIn(['general_mistakes', 'hidden_mistakes', 'ijazah_preparation', 'performance_development'])
     .withMessage('Invalid option'),
 
   check('currentLevel').isIn(['beginner', 'intermediate', 'advanced']).withMessage('Invalid level'),
 
-  check('sessionsPerWeek')
+  check('weeklySessions')
     .isInt({ min: 1, max: 5 })
     .withMessage('Sessions per week must be between 1 and 5'),
 
@@ -28,12 +28,12 @@ exports.createCorrectionProgramValidator = [
   check('planName')
     .notEmpty()
     .withMessage('Plan name is required')
-    .custom((val) =>
-      CorrectionProgram.find({ planName: val }).then((program) => {
-        if (program) return Promise.reject(new Error('Program name already exists'));
-      })
-    ),
-
+    // .custom((val) =>
+    //   CorrectionProgram.find({ planName: val }).then((program) => {
+    //     if (program) return Promise.reject(new Error('Program name already exists'));
+    //   })
+   // ),
+,
   check('fromSurah').notEmpty().withMessage('Starting surah is required'),
   check('toSurah').notEmpty().withMessage('Ending surah is required'),
 

@@ -31,14 +31,19 @@ const memorizationProgramSchema = new mongoose.Schema(
     // 🔹 Scheduling
     weeklySessions: { type: Number, enum: [1, 2, 3, 4, 5], required: true },
     sessionDuration: { type: Number, enum: [15, 30, 45, 60], required: true },
-    preferredTimes: {
-      type: [String],
-      enum: ['6-9_am', '10-1_pm', '2-5_pm', '6-9_pm', '10-1_am'],
-    },
-    days: {
-      type: [String],
-      enum: ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
-      validate: [(arr) => arr.length <= 5, 'Cannot exceed 5 days per week'],
+    preferredTimes: [
+      {
+        day: {
+          type: String,
+          enum: ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
+        },
+        start: String, // e.g. "18:00"
+      },
+    ],
+    packageDuration: {
+      type: Number,
+      enum: [1, 3, 6],
+      required: true,
     },
 
     // 🔹 Memorization Details

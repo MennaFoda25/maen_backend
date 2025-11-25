@@ -27,14 +27,7 @@ exports.createAdmin = asyncHandler(async (req, res, next) => {
 // @route   PUT /api/v1/users/:id
 // @access  Private/Admin
 exports.updateUser = asyncHandler(async (req, res, next) => {
-  const decoded = req.firebase;
-  if (!decoded?.uid) {
-    return next(new ApiError('Unauthorized: Invalid or missing Firebase token.', 401));
-  }
-  const user = await User.findOne({ firebaseUid: decoded.uid });
-  if (!user) {
-    return next(new ApiError('User not found', 404));
-  }
+const user = req.user
 
   if (req.body.password ) {
     return next(
@@ -65,7 +58,7 @@ Object.keys(req.body).forEach((key) => {
   // };
 
   if (user.role === 'student') {
-    const { learning_goals, current_level } = req.body;
+    const { learning_goals, current_level,preferredTimes } = req.body;
     updateData.studentProfile = {
       learning_goals: learning_goals
         ? Array.isArray(learning_goals)
@@ -78,7 +71,7 @@ Object.keys(req.body).forEach((key) => {
     };
   }
   if (user.role === 'teacher') {
-    const { bio, certificates, specialties, hourly_rate, availability_schedule } = req.body;
+    const { bio, certificates, specialties, hourly_rate, availabilitySchedule } = req.body;
     updateData.teacherProfile = {
       bio: bio ?? user.teacherProfile?.bio ?? '',
       specialties: specialties
@@ -89,13 +82,13 @@ Object.keys(req.body).forEach((key) => {
               .map((v) => v.trim())
         : (user.teacherProfile?.specialties ?? []),
       hourly_rate: hourly_rate ?? user.teacherProfile?.hourly_rate ?? 0,
-      availability_schedule: availability_schedule
-        ? Array.isArray(availability_schedule)
-          ? availability_schedule
-          : String(availability_schedule)
+      availabilitySchedule: availabilitySchedule
+        ? Array.isArray(availabilitySchedule)
+          ? availabilitySchedule
+          : String(availabilitySchedule)
               .split(',')
               .map((v) => v.trim())
-        : (user.teacherProfile?.availability_schedule ?? []),
+        : (user.teacherProfile?.availabilitySchedule ?? []),
       certificates: certificates
         ? Array.isArray(certificates)
           ? certificates

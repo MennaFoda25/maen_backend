@@ -1,10 +1,10 @@
 const CorrectionProgram = require('../models/correctionProgramModel');
-const TrialSession = require('../models/trialSessionModel');
+const Session = require('../models/sessionModel');
 const ApiError = require('../utils/apiError');
 const asyncHandler = require('express-async-handler');
+const { createTrialSession } = require('./sessionServices');
 const User = require('../models/userModel');
 const factory = require('../controllers/handlerFactory');
-const { createTrialSession } = require('./programServices');
 
 // Helper to safely convert strings or arrays into array of strings
 const toArray = (value) => {
@@ -23,7 +23,7 @@ const toArray = (value) => {
 exports.createCorrectionProgram = asyncHandler(async (req, res, next) => {
   const student = await User.findById(req.user._id);
 
-  if (!student || student.role !== 'student' || student.status !== 'active') {
+  if (student.status !== 'active') {
     return next(new ApiError('Only active student can proceed', 403));
   }
 
@@ -31,11 +31,11 @@ exports.createCorrectionProgram = asyncHandler(async (req, res, next) => {
     student: student._id,
     goal: req.body.goal,
     currentLevel: req.body.currentLevel,
-    sessionsPerWeek: req.body.sessionsPerWeek,
+    weeklySessions: req.body.weeklySessions,
     sessionDuration: req.body.sessionDuration,
     preferredTimes: toArray(req.body.preferredTimes),
-    Days: toArray(req.body.Days),
-    assignedTeacher: req.body.assignedTeacher || null,
+    days: toArray(req.body.days),
+    teacher: req.body.teacher,
     planName: req.body.planName,
     fromSurah: req.body.fromSurah,
     toSurah: req.body.toSurah,
@@ -43,38 +43,34 @@ exports.createCorrectionProgram = asyncHandler(async (req, res, next) => {
     pagesPerSession: req.body.pagesPerSession,
     totalPages: req.body.totalPages,
     completedPages: req.body.completedPages || 0,
+    packageDuration: req.body.packageDuration,
+
     status: 'active',
   });
 
-  let trial = null;
-  // if (req.body.trialSession && (req.body.teacher || req.body.assignedTeacher)) {
-  //   const teacherId = req.body.teacher || req.body.assignedTeacher;
-  //   // trial = await createTrialSession(newProgram, teacherId, req.user._id, 'MemorizationProgram');
-  // }
+  let populatedTrial = null;
 
-  const programData = await CorrectionProgram.findById(newProgram._id);
-
-  trial = await TrialSession.create({
-    program: newProgram._id,
-    programModel: 'CorrectionProgram',
-    teacher: newProgram.assignedTeacher._id,
-    student: req.user._id,
-    duration: 15,
-    status: 'pending',
-    preferredTimes: programData.preferredTimes || req.body.preferredTimes || [],
-    days: programData.Days || req.body.Days || [],
-  });
-
+  //const programData = await CorrectionProgram.findById(newProgram._id);
+  if (req.body.trialSession && req.body.teacher) {
+    
+    const trial = await createTrialSession({
+      programId: newProgram._id,
+      programModel: 'CorrectionProgram',
+      studentId: req.user._id,
+      teacherId: newProgram.teacher,
+      preferredTimes: newProgram.preferredTimes,
+      days: newProgram.days,
+    });
+    populatedTrial = (await trial)
+      ? await Session.findById(trial._id)
+          .populate('student', 'name email')
+          .populate('teacher', 'name email')
+      : null;
+  }
   // Populate for response
   const populatedProgram = await CorrectionProgram.findById(newProgram._id)
     .populate('student', 'name email')
-    .populate('assignedTeacher', 'name email');
-
-  const populatedTrial = trial
-    ? await TrialSession.findById(trial._id)
-        .populate('student', 'name email')
-        .populate('teacher', 'name email')
-    : null;
+    .populate('teacher', 'name email');
 
   res.status(201).json({
     status: 'success',
@@ -96,11 +92,11 @@ exports.getMyCorrectionProgram = asyncHandler(async (req, res, next) => {
   let populated = '';
 
   if (role === 'teacher') {
-    filter = { assignedTeacher: _id };
+    filter = { teacher: _id };
     populated = 'student';
   } else if (role === 'student') {
     filter = { student: _id };
-    populated = 'assignedTeacher';
+    populated = 'teacher';
   } else {
     return next(new ApiError('Only teachers and students can access their programs'), 403);
   }
@@ -131,30 +127,6 @@ exports.getMyCorrectionProgram = asyncHandler(async (req, res, next) => {
 // @desc    Get all correction programs (Admin )
 exports.getAllCorrectionPrograms = factory.getAll(CorrectionProgram);
 
-
-exports.trialSessionAccept = asyncHandler(async (req, res, next) => {
-  const { scheduledAt, meetingLink } = req.body;
-
-  const trial = await TrialSession.findByIdAndUpdate(
-    req.params.id,
-    {
-      scheduledAt,
-      meetingLink,
-      status: 'scheduled',
-    },
-    {
-      new: true,
-    }
-  );
-  if (!trial) return next(new ApiError('Trial not found'));
-
-  res.status(200).json({
-    status: 'success',
-    message: 'Trial session confirmed',
-    data: trial,
-  });
-});
-
 exports.getAssignedTeacherTrials = asyncHandler(async (req, res, next) => {
   const teacher = req.user._id;
 
@@ -162,7 +134,7 @@ exports.getAssignedTeacherTrials = asyncHandler(async (req, res, next) => {
     return next(new ApiError('Only teachers can access trial sessions', 403));
   }
 
-  const trialSession = await TrialSession.find({ teacher })
+  const trialSession = await Session.find({ teacher })
     .populate('student', 'name email')
     .populate('program', 'planName goal currentLevel status')
     .sort({ createdAt: -1 });
@@ -171,4 +143,3 @@ exports.getAssignedTeacherTrials = asyncHandler(async (req, res, next) => {
   }
   res.status(200).json({ status: 'success', count: trialSession.length, data: { trialSession } });
 });
-

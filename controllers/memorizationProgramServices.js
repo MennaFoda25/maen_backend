@@ -1,10 +1,10 @@
 const ApiError = require('../utils/apiError');
 const MemorizationProgram = require('../models/memorizationProgramModel');
 const asyncHandler = require('express-async-handler');
-const TrialSession = require('../models/trialSessionModel');
+const Session = require('../models/sessionModel');
+const { createTrialSession, generatePlanSessions } = require('./sessionServices');
 const User = require('../models/userModel');
 const factory = require('./handlerFactory');
-const { createTrialSession } = require('./programServices');
 
 const toArray = (value) => {
   if (!value) return [];
@@ -29,13 +29,14 @@ exports.createMemorizationProgram = asyncHandler(async (req, res, next) => {
     firebaseUid: student.firebaseUid,
     student: student._id,
     //trackType: req.body.trackType,
-    teacher: req.body.teacher || req.body.assignedTeacher || null,
+    teacher: req.body.teacher,
     programType: req.body.programType,
     planName: req.body.planName,
     memorizationDirection: req.body.memorizationDirection,
     memorizedParts: req.body.memorizedParts,
     weeklySessions: req.body.weeklySessions,
     sessionDuration: req.body.sessionDuration,
+    packageDuration: req.body.packageDuration,
     preferredTimes: toArray(req.body.preferredTimes),
     days: toArray(req.body.days),
     memorizationRange: {
@@ -55,38 +56,42 @@ exports.createMemorizationProgram = asyncHandler(async (req, res, next) => {
     revisionType: req.body.revisionType, // enum: ['daily', 'weekly', 'monthly']
     totalPages: req.body.totalPages,
     completedPages: req.body.completedPages || 0,
-    nextTarget: req.body.nextTarget,
-  });
 
-  let trial = null;
-  if (req.body.trialSession && (req.body.teacher || req.body.assignedTeacher)) {
-    const teacherId = req.body.teacher || req.body.assignedTeacher;
-    // trial = await createTrialSession(newProgram, teacherId, req.user._id, 'MemorizationProgram');
+    nextTarget: req.body.nextTarget,
+  })
+
+  const teacher = await User.findById(newProgram.teacher);
+
+const createdSessions = await generatePlanSessions({
+  program: newProgram,
+  teacher
+});
+
+
+  let populatedTrial = null;
+  if (req.body.trialSession && req.body.teacher) {
+    const trial = await createTrialSession({
+      programId: newProgram._id,
+      programModel: 'MemorizationProgram',
+      studentId: req.user._id,
+      teacherId: newProgram.teacher,
+      preferredTimes: newProgram.preferredTimes,
+      days: newProgram.days,
+    });
+
+    populatedTrial = (await trial)
+      ? await Session.findById(trial._id)
+          .populate('student', 'name email')
+          .populate('teacher', 'name email')
+      : null;
   }
 
-  const programData = await MemorizationProgram.findById(newProgram._id);
 
-  trial = await TrialSession.create({
-    program: newProgram._id,
-    programModel: 'MemorizationProgram',
-    teacher: newProgram.teacher._id,
-    student: req.user._id,
-    duration: 15,
-    status: 'pending',
-    preferredTimes: programData.preferredTimes || req.body.preferredTimes || [],
-    days: programData.days || req.body.days || [],
-  });
 
   // Populate for response
   const populatedProgram = await MemorizationProgram.findById(newProgram._id)
     .populate('student', 'name email')
     .populate('teacher', 'name email');
-
-  const populatedTrial = trial
-    ? await TrialSession.findById(trial._id)
-        .populate('student', 'name email')
-        .populate('teacher', 'name email')
-    : null;
 
   res.status(201).json({
     status: 'success',
@@ -94,6 +99,8 @@ exports.createMemorizationProgram = asyncHandler(async (req, res, next) => {
     data: {
       program: populatedProgram,
       trialSession: populatedTrial,
+      createdSessions: createdSessions.length,
+      createdSessions
     },
   });
 });

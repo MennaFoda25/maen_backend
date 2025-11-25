@@ -19,7 +19,36 @@ const teacherSchema = new mongoose.Schema(
       },
     ],
     hourly_rate: { type: Number },
-    availability_schedule: [String],
+    availabilitySchedule: [
+      {
+        day: {
+          type: String,
+          enum: ['saturday', 'sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+        },
+        slots: [
+          {
+            start: { type: String, required: true }, // "14:00"
+            end: { type: String, required: true }, // "15:30"
+          },
+        ],
+      },
+    ],
+    fulfilledMinutes: {
+      type: Number,
+      default: 0, // increases after each completed session
+    },
+    earnings: {
+      total: { type: Number, default: 0 }, // total money earned
+      transactions: [
+        {
+          session: { type: mongoose.Schema.ObjectId, ref: 'Session' },
+          minutes: Number,
+          rate: Number,
+          amount: Number,
+          createdAt: { type: Date, default: Date.now },
+        },
+      ],
+    },
   },
   { _id: false }
 );

@@ -38,6 +38,11 @@ const sessionSchema = new mongoose.Schema(
       enum: ['pending', 'scheduled','started', 'completed', 'cancelled'],
       default: 'pending',
     },
+       scheduledAtDate: {
+      type: Date,
+      // required: true, // only enable once migrated
+    },
+
     scheduledAt: [
       {
         day: {
@@ -46,7 +51,7 @@ const sessionSchema = new mongoose.Schema(
         },
         slots: [
           {
-            start: { type: String, required: true }, // "14:00"
+            start: { type: String }, // "14:00"
           },
         ],
       },

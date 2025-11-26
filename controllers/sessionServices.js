@@ -12,51 +12,159 @@ const checkOverLap = asyncHandler(async ({ teacherId, start, duration }) => {
   const startDate = new Date(start);
   const endDate = new Date(startDate.getTime() + duration * 60000);
 
+  console.log(`🔍 Checking overlap for teacher ${teacherId}`);
+  console.log(`   Session: ${startDate.toISOString()} to ${endDate.toISOString()}`);
+
   const conflict = await Session.findOne({
     teacher: teacherId,
     status: { $in: ['pending', 'scheduled'] },
     $or: [
       {
-        scheduledAt: { $gte: startDate, $lt: endDate },
+        scheduledAtDate: { $gte: startDate, $lt: endDate },
       },
       {
-        scheduledAt: { $lte: startDate },
+        scheduledAtDate: { $lte: startDate },
         $expr: {
-          $gt: [{ $add: ['$scheduledAt', { $multiply: ['$duration', 60000] }] }, startDate],
+          $gt: [{ $add: ['$scheduledAtDate', { $multiply: ['$duration', 60000] }] }, startDate],
         },
       },
     ],
   }).lean();
 
-  return !!conflict;
-  // const conflict = await Session.findOne({
-  //   teacher: teacherId,
-  //   status: { $in: ['prnding', 'scheduled'] },
-  //   $or: [
-  //     {
-  //       scheduledAt: { $gte: startDate, $lt: endDate },
-  //     },
-  //     {
-  //       scheduledAt: { $lte: startDate },
-  //       $expr: {
-  //         $gt: [{ $add: ['$scheduledAt', { $multiply: ['$duration', 60000] }] }, startDate],
-  //       },
-  //     },
-  //   ],
-  // }).lean();
+  if (conflict) {
+    console.log(`   ⚠️  Conflict found with session:`, conflict._id);
+  } else {
+    console.log(`   ✅ No conflicts found`);
+  }
 
-  // return !!conflict;
+  return !!conflict;
 });
 
 // helper: map different field names for weekly sessions
-function getWeeklySessionsFromProgram(program) {
-  return program.weeklySessions ?? program.sessionsPerWeek ?? 1;
+// function getWeeklySessionsFromProgram(program) {
+//   return program.weeklySessions ?? program.sessionsPerWeek ?? 1;
+// }
+
+// function getDatesForWeekdays({ daysOfWeek = [], startDate = new Date(), totalSessions = 0 }) {
+//   const days = (daysOfWeek || []).map((d) => d.toLowerCase());
+//   if (!days || days.length === 0) return [];
+//   const weekdayIndex = {
+//     sunday: 0,
+//     monday: 1,
+//     tuesday: 2,
+//     wednesday: 3,
+//     thursday: 4,
+//     friday: 5,
+//     saturday: 6,
+//   };
+
+//   // convert day strings to numeric indices sorted ascending within week order
+//   const dayIndices = days
+//     .map((d) => (weekdayIndex[d] === undefined ? null : weekdayIndex[d]))
+//     .filter((i) => i !== null)
+//     .sort((a, b) => a - b);
+
+//   const results = [];
+//   let cursor = new Date(startDate);
+//   cursor.setSeconds(0, 0);
+
+//   while (results.length < totalSessions) {
+//     const dow = cursor.getDay();
+//     if (dayIndices.includes(dow)) {
+//       results.push(new Date(cursor));
+//     }
+//     cursor.setDate(cursor.getDate() + 1);
+//   }
+//   return results;
+// }
+
+// // helper: check teacher availability for a date/time
+// // teacherSchedule shape expected: [{ day: 'sunday', slots: [{start:'14:00', end:'16:00'}] }, ...]
+// function isTeacherAvailableAt(teacher, sessionDate) {
+//   const schedule =
+//     teacher.teacherProfile?.availabilitySchedule ??
+//     teacher.teacherProfile?.availability_schedule ??
+//     [];
+
+//   if (!schedule || !Array.isArray(schedule)) return false;
+
+//   const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+
+//   const dayName = daysOfWeek[sessionDate.getDay()];
+
+//   const dayRecord = schedule.find(
+//     (d) => String(d.day).toLowerCase() === String(dayName).toLowerCase()
+//   );
+//   if (!dayRecord) return false;
+
+//   const timeStr = sessionDate.toTimeString().substring(0, 5); // "HH:MM"
+//   // if slots missing or not array => unavailable
+//   if (!Array.isArray(dayRecord.slots) || dayRecord.slots.length === 0) return false;
+
+//   return dayRecord.slots.some((slot) => {
+//     // slot.start / slot.end expected "HH:MM"
+//     return timeStr >= slot.start && timeStr < slot.end;
+//   });
+// }
+
+// function parseSessionTime(raw) {
+//   if (!raw) return [];
+//   // If already an object (Postman JSON)
+//   if (typeof raw === 'object') return raw;
+
+//   // If string (Swagger sends strings)
+//   if (typeof raw === 'string') {
+//     try {
+//       return JSON.parse(raw);
+//     } catch (err) {
+//       throw new ApiError('Invalid time format. Must be valid JSON.', 400);
+//     }
+//   }
+
+//   return [];
+// }
+function formatTime(date) {
+  return date.toTimeString().slice(0, 5);
 }
 
-function getDatesForWeekdays({ daysOfWeek = [], startDate = new Date(), totalSessions = 0 }) {
-  const days = (daysOfWeek || []).map((d) => d.toLowerCase());
-  if (!days || days.length === 0) return [];
-  const weekdayIndex = {
+function removeBookedTimeFromSlots(dayRecord, bookingStart, bookingEnd) {
+  const updatedSlots = [];
+  for (const slot of dayRecord.slots) {
+    const [sH, sM] = slot.start.split(':').map(Number);
+    const [eH, eM] = slot.end.split(':').map(Number);
+
+    const ref = new Date(bookingStart);
+    const slotStart = new Date(ref);
+    slotStart.setHours(sH, sM, 0, 0);
+    const slotEnd = new Date(ref);
+    slotEnd.setHours(eH, eM, 0, 0);
+
+    if (bookingEnd <= slotStart || bookingStart >= slotEnd) {
+      updatedSlots.push(slot);
+      continue;
+    }
+
+    if (bookingStart > slotStart) {
+      updatedSlots.push({
+        start: slot.start,
+        end: formatTime(bookingStart),
+      });
+    }
+
+    if (bookingEnd < slotEnd) {
+      updatedSlots.push({
+        start: formatTime(bookingEnd),
+        end: slot.end,
+      });
+    }
+  }
+
+  dayRecord.slots = updatedSlots;
+}
+
+// Utility: get next date for weekday (no ISO format needed)
+function nextDateForDay(day, addDays = 0) {
+  const map = {
     sunday: 0,
     monday: 1,
     tuesday: 2,
@@ -64,79 +172,6 @@ function getDatesForWeekdays({ daysOfWeek = [], startDate = new Date(), totalSes
     thursday: 4,
     friday: 5,
     saturday: 6,
-  };
-
-  // convert day strings to numeric indices sorted ascending within week order
-  const dayIndices = days
-    .map((d) => (weekdayIndex[d] === undefined ? null : weekdayIndex[d]))
-    .filter((i) => i !== null)
-    .sort((a, b) => a - b);
-
-  const results = [];
-  let cursor = new Date(startDate);
-  cursor.setSeconds(0, 0);
-
-  while (results.length < totalSessions) {
-    const dow = cursor.getDay();
-    if (dayIndices.includes(dow)) {
-      results.push(new Date(cursor));
-    }
-    cursor.setDate(cursor.getDate() + 1);
-  }
-  return results;
-}
-
-// helper: check teacher availability for a date/time
-// teacherSchedule shape expected: [{ day: 'sunday', slots: [{start:'14:00', end:'16:00'}] }, ...]
-function isTeacherAvailableAt(teacher, sessionDate) {
-  const schedule =
-    teacher.teacherProfile?.availabilitySchedule ??
-    teacher.teacherProfile?.availability_schedule ??
-    [];
-
-  if (!schedule || !Array.isArray(schedule)) return false;
-
-  const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-
-  const dayName = daysOfWeek[sessionDate.getDay()];
-
-  const dayRecord = schedule.find(
-    (d) => String(d.day).toLowerCase() === String(dayName).toLowerCase()
-  );
-  if (!dayRecord) return false;
-
-  const timeStr = sessionDate.toTimeString().substring(0, 5); // "HH:MM"
-  // if slots missing or not array => unavailable
-  if (!Array.isArray(dayRecord.slots) || dayRecord.slots.length === 0) return false;
-
-  return dayRecord.slots.some((slot) => {
-    // slot.start / slot.end expected "HH:MM"
-    return timeStr >= slot.start && timeStr < slot.end;
-  });
-}
-
-function parseSessionTime(raw) {
-  if (!raw) return [];
-  // If already an object (Postman JSON)
-  if (typeof raw === 'object') return raw;
-
-  // If string (Swagger sends strings)
-  if (typeof raw === 'string') {
-    try {
-      return JSON.parse(raw);
-    } catch (err) {
-      throw new ApiError('Invalid time format. Must be valid JSON.', 400);
-    }
-  }
-
-  return [];
-}
-
-// Utility: get next date for weekday (no ISO format needed)
-function nextDateForDay(day, addDays = 0) {
-  const map = {
-    sunday: 0, monday: 1, tuesday: 2, wednesday: 3,
-    thursday: 4, friday: 5, saturday: 6
   };
 
   const today = new Date();
@@ -148,12 +183,235 @@ function nextDateForDay(day, addDays = 0) {
 
   return result;
 }
-// create all sessions for a plan
-// planOptions: { programId, programModel, studentId, teacherId, sessionDuration, weeklySessions, planMonths, startDate, days }
-// returns array of session documents (created)
+
+// Helper function to generate plan sessions (can be called from route or directly)
+async function generatePlanSessionsLogic(program, teacher, programModel) {
+  const schedule = teacher?.teacherProfile?.availabilitySchedule || [];
+
+  const weeklySessions = program.weeklySessions;
+  const duration = program.sessionDuration;
+  const weeks = program.packageDuration * 4;
+  const totalSessions = weeklySessions * weeks;
+  const programId = program._id;
+
+  // NORMALIZE preferred times for each program type
+  let preferred = [];
+
+  if (programModel === 'CorrectionProgram') {
+    // Correction program has NO day/start in preferredTimes
+    // → Use program.days + teacher's earliest slot
+    if (!program.days || !Array.isArray(program.days) || program.days.length === 0) {
+      throw new ApiError('Correction program must have days specified', 400);
+    }
+
+    if (!schedule || schedule.length === 0) {
+      throw new ApiError(
+        `Teacher has no availability schedule set. Please configure teacher availability for days: [${program.days.join(', ')}] before generating sessions.`,
+        400
+      );
+    }
+
+    const availableDays = schedule.map((d) => d.day);
+    console.log(`📅 CorrectionProgram requires days: [${program.days.join(', ')}]`);
+    console.log(`📅 Teacher has availability for: [${availableDays.join(', ')}]`);
+
+    preferred = program.days
+      .map((day) => {
+        const rec = schedule.find(
+          (d) => d.day && d.day.toLowerCase() === String(day).toLowerCase()
+        );
+        if (!rec || !rec.slots || rec.slots.length === 0) {
+          console.log(`  ❌ No availability found for day: "${day}"`);
+          return null;
+        }
+        console.log(`  ✅ Found availability for "${day}" at ${rec.slots[0].start}`);
+
+        return {
+          day,
+          start: rec.slots[0].start, // earliest available teacher time
+        };
+      })
+      .filter(Boolean);
+  } else if (
+    programModel === 'MemorizationProgram' ||
+    programModel === 'ChildMemorizationProgram'
+  ) {
+    if (!program.preferredTimes || !Array.isArray(program.preferredTimes)) {
+      throw new ApiError('Program must have preferred times specified', 400);
+    }
+
+    const availableDays = schedule.map((d) => d.day);
+    console.log(
+      `📅 ${programModel} requires days: [${program.preferredTimes.map((p) => p.day).join(', ')}]`
+    );
+    console.log(`📅 Teacher has availability for: [${availableDays.join(', ')}]`);
+
+    // Validate that preferredTimes have both day and start, and match teacher's available days
+    preferred = program.preferredTimes
+      .filter((t) => t?.day && t?.start)
+      .map((t) => {
+        const rec = schedule.find(
+          (d) => d.day && d.day.toLowerCase() === String(t.day).toLowerCase()
+        );
+        if (!rec || !rec.slots || rec.slots.length === 0) {
+          console.log(`  ❌ No availability found for "${t.day}" at "${t.start}"`);
+          return null;
+        }
+        console.log(`  ✅ Found availability for "${t.day}"`);
+        return t;
+      })
+      .filter(Boolean);
+  }
+
+  if (!preferred.length) {
+    const availableDays = schedule.map((d) => d.day).join(', ') || 'NONE';
+    let errorMsg =
+      'No valid preferred times to generate sessions. Program requires days/times that teacher is not available for.';
+
+    if (programModel === 'CorrectionProgram') {
+      errorMsg = `CorrectionProgram requires days [${program.days.join(', ')}] but teacher only has availability on [${availableDays}].`;
+    } else {
+      const requiredDays = program.preferredTimes.map((p) => `${p.day}(${p.start})`).join(', ');
+      errorMsg = `${programModel} requires [${requiredDays}] but teacher only has availability on [${availableDays}].`;
+    }
+
+    throw new ApiError(errorMsg, 400);
+  }
+
+  // Helper to compute date of a specific weekday + time + week offset
+  const computeDate = (day, time, weekOffset) => {
+    const map = {
+      sunday: 0,
+      monday: 1,
+      tuesday: 2,
+      wednesday: 3,
+      thursday: 4,
+      friday: 5,
+      saturday: 6,
+    };
+    const today = new Date();
+    const target = map[day.toLowerCase()];
+    const diff = (target + 7 - today.getDay()) % 7;
+
+    const d = new Date(today);
+    d.setDate(today.getDate() + diff + weekOffset * 7);
+
+    const [h, m] = time.split(':').map(Number);
+    d.setHours(h, m, 0, 0);
+
+    return d;
+  };
+
+  const created = [];
+  let count = 0;
+
+  // Make a deep copy of schedule to modify it
+  const scheduleSnapshot = JSON.parse(JSON.stringify(schedule));
+
+  for (let w = 0; w < weeks && count < totalSessions; w++) {
+    let createdThisWeek = 0;
+
+    for (const pref of preferred) {
+      if (count >= totalSessions) break;
+
+      // Use the snapshot instead of original schedule
+      const dayRecord = scheduleSnapshot.find(
+        (d) => d.day && d.day.toLowerCase() === String(pref.day).toLowerCase()
+      );
+
+      if (!dayRecord || !dayRecord.slots?.length) {
+        console.log(`  ⚠️  Week ${w + 1}: Day "${pref.day}" has no slots available, skipping`);
+        continue;
+      }
+
+      const startDate = computeDate(pref.day, pref.start, w);
+      const endDate = new Date(startDate.getTime() + duration * 60000);
+
+      console.log(`  🔍 Week ${w + 1}: Checking ${pref.day} at ${pref.start}`);
+      console.log(`    Start: ${startDate.toISOString()}, End: ${endDate.toISOString()}`);
+      console.log(`    Available slots: ${JSON.stringify(dayRecord.slots)}`);
+
+      // find slot that contains that time
+      const slot = dayRecord.slots.find((s) => {
+        const [hs, ms] = s.start.split(':').map(Number);
+        const [he, me] = s.end.split(':').map(Number);
+
+        const ref = new Date(startDate);
+        const slotStart = new Date(ref);
+        slotStart.setHours(hs, ms, 0, 0);
+        const slotEnd = new Date(ref);
+        slotEnd.setHours(he, me, 0, 0);
+
+        const fits = slotStart <= startDate && slotEnd >= endDate;
+        console.log(
+          `    Checking slot ${s.start}-${s.end}: slotStart=${slotStart.toISOString()}, slotEnd=${slotEnd.toISOString()}, fits=${fits}`
+        );
+        return fits;
+      });
+
+      if (!slot) {
+        console.log(`    ❌ No suitable slot found for ${pref.day} at ${pref.start}, skipping`);
+        continue;
+      }
+
+      console.log(`    ✅ Creating session for ${pref.day} at ${pref.start}`);
+
+      // CREATE session
+      const newSession = await Session.create({
+        program: programId,
+        programModel,
+        student: program.student,
+        teacher: program.teacher,
+        duration,
+        type: 'program',
+        status: 'scheduled',
+        scheduledAtDate: new Date(startDate),
+        scheduledAt: [{ day: pref.day, slots: [{ start: pref.start }] }],
+      });
+
+      created.push(newSession);
+      count++;
+      createdThisWeek++;
+
+      console.log(`    ✨ Session created! Total so far: ${count}/${totalSessions}`);
+
+      // ✨ REMOVE BOOKED TIME FROM TEACHER'S AVAILABILITY
+      removeBookedTimeFromSlots(dayRecord, startDate, endDate);
+      console.log(
+        `    ✅ Removed booked time from teacher's availability. Remaining slots: ${JSON.stringify(dayRecord.slots)}`
+      );
+
+      if (createdThisWeek >= weeklySessions) {
+        console.log(`  ✨ Week ${w + 1} complete: ${createdThisWeek} sessions created`);
+        break;
+      }
+    }
+  }
+
+  // ✨ PERSIST UPDATED SCHEDULE TO DATABASE
+  teacher.teacherProfile.availabilitySchedule = scheduleSnapshot;
+  await teacher.save();
+  console.log(`✅ Teacher availability updated and saved to database`);
+
+  return created;
+}
+
+// Direct function export for programServices to call
+exports.generatePlanSessionsForProgram = asyncHandler(async (program, teacher) => {
+  // Determine program model based on constructor or custom field
+  let programModel = 'MemorizationProgram';
+  if (program.goal) {
+    programModel = 'CorrectionProgram';
+  } else if (program.childName) {
+    programModel = 'ChildMemorizationProgram';
+  }
+
+  return generatePlanSessionsLogic(program, teacher, programModel);
+});
+
 exports.generatePlanSessions = asyncHandler(async (req, res, next) => {
   const { programModel } = req.body;
-  const  programId  = req.params.id;
+  const programId = req.params.id;
 
   const ProgramModel = {
     CorrectionProgram,
@@ -162,99 +420,44 @@ exports.generatePlanSessions = asyncHandler(async (req, res, next) => {
   }[programModel];
 
   if (!ProgramModel) return next(new ApiError('Program not found', 404));
-  // 2️⃣ Validate 
-
   const program = await ProgramModel.findById(programId);
   if (!program) return next(new ApiError('Program not found', 404));
 
-  const teacherId = program.teacher;
-  if (!teacherId) return next(new ApiError('Program has no assigned teacher', 400));
+  const teacher = await User.findById(program.teacher);
+  if (!teacher) return next(new ApiError('Teacher not found', 404));
 
-  // 2️⃣ Load teacher
-  const teacher = await User.findById(teacherId);
-  if (!teacher || teacher.status !== 'active') {
-    return next(new ApiError('Teacher inactive or not found', 404));
-  }
+  // ✨ VALIDATION: Check if teacher is dedicated to this program type
+  const teacherPreferences = teacher.teacherProfile?.programPreference || [];
+  const programType = await ProgramType.findOne({ key: programModel });
 
-  const schedule = teacher.teacherProfile.availabilitySchedule;
-  const weeklySessions = program.weeklySessions;
-  const sessionDuration = program.sessionDuration;
-  const planMonths = program.packageDuration;
-  const totalWeeks = planMonths * 4;
-  const totalSessions = totalWeeks * weeklySessions;
+  if (programType && teacherPreferences.length > 0) {
+    const isDedicatedToProgram = teacherPreferences.some(
+      (pref) => pref.toString() === programType._id.toString()
+    );
 
-  // const preferredTimes = req.body.preferredTimes;
-
-  // if (!Array.isArray(preferredTimes) || preferredTimes.length === 0) {
-  //   return next(new ApiError('Preferred times are required to generate sessions', 400));
-  // }
-
-  const createdSessions = [];
-  // 4️⃣ Loop for total number of sessions needed
-  let sessionCounter = 0;
-  let weekOffset = 0;
-
-  while (sessionCounter < totalSessions) {
-    for (const slotReq of preferredTimes) {
-      if (sessionCounter >= totalSessions) break;
-
-      const { day, start } = slotReq;
-
-      // 5️⃣ Validate day availability
-      const dayRecord = schedule.find((d) => d.day === day);
-      if (!dayRecord) continue;
-
-      // 6️⃣ Find a matching slot in teacher availability
-      const slot = dayRecord.slots.find((s) => s.start === start);
-      if (!slot) continue;
-
-      // 7️⃣ Build date for this week's session
-      const sessionDate = nextDateForDay(day, weekOffset);
-
-      // 8️⃣ Check overlap using your internal logic
-      const conflict = await checkOverLap({
-        teacherId,
-        start: sessionDate,
-        duration: sessionDuration,
-      });
-
-      if (conflict) continue;
-      // 9️⃣ Create session using same structure as single booking API
-      const newSession = await Session.create({
-        program: programId,
-        programModel,
-        student: program.student,
-        teacher: teacherId,
-        type: 'program',
-        duration: sessionDuration,
-        status: 'scheduled',
-        scheduledAt: [
-          {
-            day,
-            slots: [{ start }],
-          },
-        ],
-      });
-
-      createdSessions.push(newSession);
-
-      // 🔟 Remove slot from teacher availability
-      dayRecord.slots = dayRecord.slots.filter((s) => s.start !== start);
-
-      sessionCounter++;
+    if (!isDedicatedToProgram) {
+      return next(
+        new ApiError(
+          `Teacher is not dedicated to ${programModel}. Teacher specializes in: ${teacherPreferences.join(', ')}`,
+          403
+        )
+      );
     }
-
-    weekOffset += 7; // next week
   }
 
-  await teacher.save();
-  return res.status(201).json({
-    status: 'success',
-    totalCreated: createdSessions.length,
-    createdSessions,
-  });
-});
+  try {
+    // Call the core logic which validates and creates sessions
+    const created = await generatePlanSessionsLogic(program, teacher, programModel);
 
+    return res.status(201).json({
+      status: 'success',
+      totalCreated: created.length,
+      sessions: created,
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
 
 exports.createTrialSession = asyncHandler(
   async ({ programId, programModel, studentId, teacherId, preferredTimes, days }) => {
@@ -281,7 +484,7 @@ exports.createTrialSession = asyncHandler(
 );
 
 exports.bookProgramSession = asyncHandler(async (req, res, next) => {
-  const { programId, programModel, teacherId, scheduledAt } = req.body;
+  const { programId, programModel, teacherId, scheduledAt, scheduledAtDate } = req.body;
   const ProgramModel = {
     CorrectionProgram,
     MemorizationProgram,
@@ -299,18 +502,74 @@ exports.bookProgramSession = asyncHandler(async (req, res, next) => {
     return next(new ApiError('Selected teacher is not available', 403));
   }
   const schedule = teacher.teacherProfile.availabilitySchedule || [];
+
+  console.log(`📅 Looking for day: ${scheduledAt.day}`);
+  console.log(
+    `📅 Available days in schedule:`,
+    schedule.map((s) => s.day)
+  );
+
   // 3) Get day record
-  const dayRecord = schedule.find((d) => d.day === scheduledAt.day);
+  const dayRecord = schedule.find(
+    (d) => d.day && d.day.toLowerCase() === scheduledAt.day.toLowerCase()
+  );
 
   if (!dayRecord) {
     return next(new ApiError('Teacher not available on this day', 400));
   }
 
-  // 4) Find slot
-  const slot = dayRecord.slots.find((s) => s.start === scheduledAt.start);
+  console.log(`📅 Found day record for ${scheduledAt.day}`);
+  console.log(`📅 Available slots:`, dayRecord.slots);
+
+  // 4) Find slot - check if the requested time falls within any slot's range
+  const slot = dayRecord.slots.find((s) => {
+    const [reqH, reqM] = scheduledAt.start.split(':').map(Number);
+    const [slotH, slotM] = s.start.split(':').map(Number);
+    const [slotEndH, slotEndM] = s.end.split(':').map(Number);
+
+    const reqTime = reqH * 60 + reqM;
+    const slotStart = slotH * 60 + slotM;
+    const slotEnd = slotEndH * 60 + slotEndM;
+
+    const fits = reqTime >= slotStart && reqTime < slotEnd;
+    console.log(
+      `    Checking slot ${s.start}-${s.end}: reqTime=${reqTime}, slotStart=${slotStart}, slotEnd=${slotEnd}, fits=${fits}`
+    );
+    return fits;
+  });
 
   if (!slot) {
+    console.log(`❌ No suitable slot found for ${scheduledAt.start}`);
     return next(new ApiError('Selected time slot is not available', 400));
+  }
+
+  console.log(`✅ Found suitable slot: ${slot.start}-${slot.end}`);
+
+  // 4.5) Check for scheduling conflicts using checkOverLap
+  // Parse the scheduled date from request or compute it from day name
+  let sessionDate;
+  if (scheduledAtDate) {
+    sessionDate = new Date(scheduledAtDate);
+  } else {
+    // Fallback: compute from day name (less reliable)
+    const [hours, minutes] = scheduledAt.start.split(':').map(Number);
+    sessionDate = new Date();
+    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const dayIndex = days.indexOf(scheduledAt.day.toLowerCase());
+    const currentDay = sessionDate.getDay();
+    const diff = (dayIndex - currentDay + 7) % 7;
+    sessionDate.setDate(sessionDate.getDate() + diff);
+    sessionDate.setHours(hours, minutes, 0, 0);
+  }
+
+  const hasConflict = await checkOverLap({
+    teacherId,
+    start: sessionDate.toISOString(),
+    duration: program.sessionDuration,
+  });
+
+  if (hasConflict) {
+    return next(new ApiError('Teacher already has a session at this time', 400));
   }
 
   // 5) Build correct session payload (matches your Session model)
@@ -322,7 +581,7 @@ exports.bookProgramSession = asyncHandler(async (req, res, next) => {
     duration: program.sessionDuration,
     status: 'scheduled',
     type: 'program',
-
+    scheduledAtDate: sessionDate,
     scheduledAt: [
       {
         day: scheduledAt.day,
@@ -335,8 +594,9 @@ exports.bookProgramSession = asyncHandler(async (req, res, next) => {
 
   const session = await Session.create(sessionPayload);
 
-  // 6) Remove slot from teacher availability
-  dayRecord.slots = dayRecord.slots.filter((s) => s.start !== scheduledAt.start);
+  // 6) Remove booked time from teacher availability using proper time fragmentation
+  const endDate = new Date(sessionDate.getTime() + program.sessionDuration * 60000);
+  removeBookedTimeFromSlots(dayRecord, sessionDate, endDate);
   await teacher.save();
 
   return res.status(201).json({

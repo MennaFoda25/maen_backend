@@ -64,9 +64,8 @@ exports.teacherSignUp = asyncHandler(async (req, res, next) => {
   ];
 
   teacherProfileData.availabilitySchedule = parseAvailabilitySchedule(
-  req.body.availabilitySchedule
-);
-
+    req.body.availabilitySchedule
+  );
 
   // 5️⃣ Create teacher request in one DB operation
   const teacherReq = await TeacherRequest.create({
@@ -186,7 +185,7 @@ exports.reviewteacherReq = asyncHandler(async (req, res, next) => {
   // Validate requester is admin (load from DB)
   const requester = await User.findOne({ firebaseUid: req.firebase.uid });
   //if (!requester || requester.role !== 'admin')
-   // return next(new ApiError('Admin privileges required', 403));
+  // return next(new ApiError('Admin privileges required', 403));
 
   // Validate body
   const { status } = req.body;
@@ -304,5 +303,63 @@ exports.getTeachersByProgramType = asyncHandler(async (req, res) => {
     status: 'success',
     count: teachers.length,
     data: teachers,
+  });
+});
+
+// @desc    Get all sessions for logged-in teacher (all statuses)
+// @route   GET /api/v1/teacher-sessions
+// @access  Private (Teacher)
+exports.getTeacherSessions = asyncHandler(async (req, res, next) => {
+  const Session = require('../models/sessionModel');
+
+  const teacherId = req.user._id;
+
+  if (!teacherId) {
+    return next(new ApiError('Teacher ID not found in authenticated user', 401));
+  }
+
+  // Fetch all sessions where this teacher is assigned
+  const sessions = await Session.find({ teacher: teacherId })
+    .populate({
+      path: 'student',
+      select: 'name email profile_picture',
+    })
+    .populate({
+      path: 'program',
+      select: 'name sessionDuration weeklySessions packageDuration',
+    })
+    .sort({ scheduledAtDate: -1 })
+    .lean();
+
+  if (!sessions || sessions.length === 0) {
+    return res.status(200).json({
+      status: 'success',
+      count: 0,
+      message: 'No sessions found for this teacher',
+      data: [],
+    });
+  }
+
+  // Group sessions by status
+  const groupedByStatus = {
+    pending: sessions.filter((s) => s.status === 'pending'),
+    scheduled: sessions.filter((s) => s.status === 'scheduled'),
+    started: sessions.filter((s) => s.status === 'started'),
+    completed: sessions.filter((s) => s.status === 'completed'),
+    cancelled: sessions.filter((s) => s.status === 'cancelled'),
+  };
+
+  res.status(200).json({
+    status: 'success',
+    count: sessions.length,
+    summary: {
+      pending: groupedByStatus.pending.length,
+      scheduled: groupedByStatus.scheduled.length,
+      started: groupedByStatus.started.length,
+      completed: groupedByStatus.completed.length,
+      cancelled: groupedByStatus.cancelled.length,
+    },
+    data: sessions,
+    groupedByStatus,
   });
 });

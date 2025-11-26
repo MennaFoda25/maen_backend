@@ -134,7 +134,7 @@ exports.getAssignedTeacherTrials = asyncHandler(async (req, res, next) => {
     return next(new ApiError('Only teachers can access trial sessions', 403));
   }
 
-  const trialSession = await Session.find({ teacher })
+  const trialSession = await Session.find({ teacher, type:"trial" })
     .populate('student', 'name email')
     .populate('program', 'planName goal currentLevel status')
     .sort({ createdAt: -1 });

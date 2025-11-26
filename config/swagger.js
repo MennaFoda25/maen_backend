@@ -9,7 +9,7 @@ module.exports = {
   },
   servers: [
     {
-      // url: 'http://localhost:3000/api/v1',
+       //url: 'http://localhost:3000/api/v1',
       url: 'https://maen-backend.onrender.com/api/v1',
       // description: 'local dev server',
       description:
@@ -2063,17 +2063,8 @@ Only accessible by admin users.
     '/sessions/book': {
       post: {
         tags: ['Sessions'],
-        summary: 'Book a single program session',
-        description: `
-Allows a student to book one program session from the teacher’s availability schedule.
-
-Validations:
-- Program must exist
-- Teacher must be active
-- Teacher must be available on selected day & time
-- Slot becomes unavailable after booking
-    `,
         security: [{ FirebaseUidAuth: [] }],
+        summary: 'Book a single session for a program',
         requestBody: {
           required: true,
           content: {
@@ -2084,7 +2075,7 @@ Validations:
                 properties: {
                   programId: {
                     type: 'string',
-                    example: '69236fced2012ed375e9b2fa',
+                    example: '677bf39fdd4f30f40cb15f94',
                   },
                   programModel: {
                     type: 'string',
@@ -2093,11 +2084,10 @@ Validations:
                   },
                   teacherId: {
                     type: 'string',
-                    example: '692452a29f5bb77c1807ad50',
+                    example: '677a89d55b31812cd45dc342',
                   },
                   scheduledAt: {
                     type: 'object',
-                    description: 'Slot format selected from teacher availability',
                     properties: {
                       day: {
                         type: 'string',
@@ -2110,14 +2100,18 @@ Validations:
                           'friday',
                           'saturday',
                         ],
-                        example: 'sunday',
+                        example: 'monday',
                       },
                       start: {
                         type: 'string',
-                        example: '18:00',
-                        description: "Must match a teacher's available slot start time",
+                        example: '15:00',
                       },
                     },
+                  },
+                  scheduledAtDate: {
+                    type: 'string',
+                    format: 'date-time',
+                    example: '2025-03-02T15:00:00.000Z',
                   },
                 },
               },
@@ -2129,28 +2123,74 @@ Validations:
             description: 'Session booked successfully',
             content: {
               'application/json': {
-                schema: {
-                  type: 'object',
-                  properties: {
-                    status: { type: 'string', example: 'success' },
-                    message: { type: 'string', example: 'Session booked successfully' },
-                    session: { $ref: '#/components/schemas/Session' },
+                schema: { $ref: '#/components/schemas/Session' },
+              },
+            },
+          },
+          400: { description: 'Invalid time or teacher not available' },
+          403: { description: 'Teacher inactive or blocked' },
+          404: { description: 'Program or teacher not found' },
+        },
+      },
+    },
+    '/sessions/{id}/generatePlan': {
+      post: {
+        tags: ['Sessions'],
+        security: [{ FirebaseUidAuth: [] }],
+        summary: 'Generate full recurring schedule for a program',
+        parameters: [
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Program ID',
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['programModel'],
+                properties: {
+                  programModel: {
+                    type: 'string',
+                    enum: ['CorrectionProgram', 'MemorizationProgram', 'ChildMemorizationProgram'],
+                    example: 'CorrectionProgram',
                   },
                 },
               },
             },
           },
-          400: {
-            description: 'Validation or scheduling error',
+        },
+        responses: {
+          201: {
+            description: 'Plan sessions generated successfully',
             content: {
               'application/json': {
-                schema: { $ref: '#/components/schemas/ErrorResponse' },
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string', example: 'success' },
+                    totalCreated: { type: 'number', example: 12 },
+                    sessions: {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/Session' },
+                    },
+                  },
+                },
               },
             },
           },
+          400: { description: 'Invalid preferred times or missing data' },
+          403: { description: 'Teacher is not dedicated to this program type' },
+          404: { description: 'Program or teacher not found' },
         },
       },
     },
+
     '/sessions/{id}/start': {
       patch: {
         tags: ['Sessions'],
@@ -2219,6 +2259,45 @@ Automatically adds session.duration minutes to teacher.fulfilledMinutes.
               },
             },
           },
+        },
+      },
+    },
+
+    '/teachers/mySessions': {
+      get: {
+        tags: ['Sessions'],
+        security: [{ FirebaseUidAuth: [] }],
+        summary: 'Get all sessions for the authenticated teacher',
+        responses: {
+          200: {
+            description: 'List of sessions grouped by status',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string', example: 'success' },
+                    count: { type: 'number', example: 7 },
+                    summary: {
+                      type: 'object',
+                      properties: {
+                        pending: { type: 'number', example: 1 },
+                        scheduled: { type: 'number', example: 3 },
+                        started: { type: 'number', example: 1 },
+                        completed: { type: 'number', example: 2 },
+                        cancelled: { type: 'number', example: 0 },
+                      },
+                    },
+                    data: {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/Session' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          401: { description: 'Unauthorized' },
         },
       },
     },

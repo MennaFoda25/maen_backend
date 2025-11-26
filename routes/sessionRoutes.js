@@ -13,7 +13,7 @@ const {
 router.use(firebaseAuth);
 
 router.post('/book',allowedTo('student'), bookProgramSession);
-router.post('/:id/generate-plan',allowedTo('student'), generatePlanSessions);
+router.post('/:id/generatePlan',allowedTo('student'), generatePlanSessions);
 router.route('/:id/accept').patch(allowedTo('teacher'), trialSessionAccept);
 router.patch('/:id/complete', allowedTo('teacher', 'student'), sessionCompleted);
 router.patch('/:id/start', allowedTo('teacher', 'student'), sessionStart);

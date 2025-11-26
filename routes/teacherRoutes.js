@@ -5,6 +5,7 @@ const {
   assignTeacherSpecilaization,
   getSpecificTeacherData,
   getAllActiveTeachers,
+  getTeacherSessions
 } = require('../controllers/teacherRequestService');
 const {
   getAssignedTeacherTrials,
@@ -34,6 +35,7 @@ router.patch(
   allowedTo('admin'),
   assignTeacherSpecilaization
 );
+router.get('/mySessions',allowedTo('teacher'),getTeacherSessions)
 router.route('/:id').get(getSpecificTeacherData);
 router.get('/:id/schedules', allowedTo('student', 'admin'), getTeacherSchedulesById);
 

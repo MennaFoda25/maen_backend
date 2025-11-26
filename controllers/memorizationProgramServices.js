@@ -2,7 +2,7 @@ const ApiError = require('../utils/apiError');
 const MemorizationProgram = require('../models/memorizationProgramModel');
 const asyncHandler = require('express-async-handler');
 const Session = require('../models/sessionModel');
-const { createTrialSession, generatePlanSessions } = require('./sessionServices');
+const { createTrialSession, generatePlanSessionsForProgram } = require('./sessionServices');
 const User = require('../models/userModel');
 const factory = require('./handlerFactory');
 
@@ -58,15 +58,19 @@ exports.createMemorizationProgram = asyncHandler(async (req, res, next) => {
     completedPages: req.body.completedPages || 0,
 
     nextTarget: req.body.nextTarget,
-  })
+  });
 
   const teacher = await User.findById(newProgram.teacher);
 
-const createdSessions = await generatePlanSessions({
-  program: newProgram,
-  teacher
-});
-
+  let createdSessions = [];
+  if (teacher) {
+    try {
+      createdSessions = await generatePlanSessionsForProgram(newProgram, teacher);
+    } catch (err) {
+      console.error('Error generating plan sessions:', err.message);
+      // Continue even if session generation fails - the program is created
+    }
+  }
 
   let populatedTrial = null;
   if (req.body.trialSession && req.body.teacher) {
@@ -86,8 +90,6 @@ const createdSessions = await generatePlanSessions({
       : null;
   }
 
-
-
   // Populate for response
   const populatedProgram = await MemorizationProgram.findById(newProgram._id)
     .populate('student', 'name email')
@@ -100,7 +102,7 @@ const createdSessions = await generatePlanSessions({
       program: populatedProgram,
       trialSession: populatedTrial,
       createdSessions: createdSessions.length,
-      createdSessions
+      createdSessions,
     },
   });
 });

@@ -882,6 +882,105 @@ Only works if role="admin" is sent in the request body.
         },
       },
     },
+    '/users/myPlans': {
+  get: {
+    tags: ['User'],
+        security: [{ FirebaseUidAuth: [] }],
+    summary: 'Get all plans and sessions for the logged-in student',
+    description:
+      'Returns all Correction, Memorization, and Child Memorization programs for the authenticated student, each with their associated sessions, teacher info, and session summary.',
+    responses: {
+      200: {
+        description: 'Plans and sessions retrieved successfully',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                status: { type: 'string', example: 'success' },
+                totalPlans: { type: 'number', example: 3 },
+                totalSessions: { type: 'number', example: 12 },
+                sessionsSummary: {
+                  type: 'object',
+                  properties: {
+                    total: { type: 'number', example: 12 },
+                    pending: { type: 'number', example: 1 },
+                    scheduled: { type: 'number', example: 6 },
+                    started: { type: 'number', example: 2 },
+                    completed: { type: 'number', example: 3 },
+                    cancelled: { type: 'number', example: 0 },
+                  },
+                },
+                data: {
+                  type: 'object',
+                  properties: {
+                    memorizationPrograms: {
+                      type: 'array',
+                      items: {
+                        $ref: '#/components/schemas/MemorizationProgram'
+                      },
+                    },
+                    correctionPrograms: {
+                      type: 'array',
+                      items: {
+                        $ref: '#/components/schemas/CorrectionProgram'
+                      },
+                    },
+                    childMemorizationPrograms: {
+                      type: 'array',
+                      items: {
+                        $ref: '#/components/schemas/ChildMemorizationProgram'
+                      },
+                    },
+                    allPlans: {
+                      type: 'array',
+                      description: 'All plans combined and sorted by creation date',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          _id: { type: 'string' },
+                          programType: {
+                            type: 'string',
+                            enum: [
+                              'MemorizationProgram',
+                              'CorrectionProgram',
+                              'ChildMemorizationProgram'
+                            ],
+                          },
+                          teacher: {
+                            type: 'object',
+                            properties: {
+                              name: { type: 'string' },
+                              email: { type: 'string' },
+                              profile_picture: { type: 'string' },
+                            },
+                          },
+                          sessions: {
+                            type: 'array',
+                            items: { $ref: '#/components/schemas/Session' },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      401: {
+        description: 'Unauthorized – Student not logged in',
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/ErrorResponse' },
+          },
+        },
+      },
+    },
+  },
+},
+
 
     // '/users/changeMyPassword': {
     //   put: {

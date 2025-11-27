@@ -15,6 +15,7 @@ const {
   changePassword,
   suspendUser,
 } = require('../controllers/userService');
+const {getLoggedInStudentPlans}= require('../controllers/studentServices')
 const { uploadFiles } = require('../middlewares/uploadFilesMiddleware');
 const { allowedTo } = require('../controllers/authServices');
 
@@ -24,6 +25,7 @@ const router = express.Router();
 
 router.use(firebaseAuth );
 router.put('/changeMyPassword', changePassword);
+router.get('/myPlans',allowedTo('student'),getLoggedInStudentPlans)
 
 router
   .route('/')

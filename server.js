@@ -20,8 +20,9 @@ const correctionRoutes = require('./routes/correctionProgramRoutes');
 const teacherRoutes = require('./routes/teacherRoutes');
 const memorizationRoutes = require('./routes/memorizationProgramRoutes');
 const childRoutes = require('./routes/childProgramRoutes');
-const sessionRoutes = require('./routes/sessionRoutes')
-const programRoutes = require('./routes/programRoutes')
+const sessionRoutes = require('./routes/sessionRoutes');
+const programRoutes = require('./routes/programRoutes');
+const eventRoutes = require('./routes/eventRoutes');
 const app = express();
 
 // Middleware
@@ -46,8 +47,9 @@ app.use('/api/v1/programs/correction', correctionRoutes);
 app.use('/api/v1/programs/memorization', memorizationRoutes);
 app.use('/api/v1/programs/child', childRoutes);
 app.use('/api/v1/teachers', teacherRoutes);
-app.use('/api/v1/sessions',sessionRoutes)
-app.use('/api/v1/programs',programRoutes)
+app.use('/api/v1/sessions', sessionRoutes);
+app.use('/api/v1/programs', programRoutes);
+app.use('/api/v1/events', eventRoutes);
 // Serve Swagger UI (automatic with CSS/JS)
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 console.log('Swagger UI available at /api-docs');

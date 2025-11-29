@@ -9,11 +9,11 @@ module.exports = {
   },
   servers: [
     {
-       //url: 'http://localhost:3000/api/v1',
-      url: 'https://maen-backend.onrender.com/api/v1',
+      url: 'http://localhost:3000/api/v1',
+      // url: 'https://maen-backend.onrender.com/api/v1',
       // description: 'local dev server',
-      description:
-        process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server',
+      //description:
+      //  process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server',
     },
   ],
   components: {
@@ -122,6 +122,20 @@ module.exports = {
         properties: {
           status: { type: 'string', example: 'error' },
           message: { type: 'string', example: 'Invalid input' },
+        },
+      },
+      Event: {
+        type: 'object',
+        properties: {
+          _id: { type: 'string' },
+          title: { type: 'string', example: 'Ramadan Offer' },
+          description: { type: 'string', example: 'Special discount for Ramadan' },
+          imageUrl: { type: 'string', example: 'https://example.com/banner.png' },
+          startDate: { type: 'string', format: 'date-time' },
+          endDate: { type: 'string', format: 'date-time' },
+          isActive: { type: 'boolean', example: true },
+          createdAt: { type: 'string', format: 'date-time' },
+          updatedAt: { type: 'string', format: 'date-time' },
         },
       },
 
@@ -883,81 +897,83 @@ Only works if role="admin" is sent in the request body.
       },
     },
     '/users/myPlans': {
-  get: {
-    tags: ['User'],
+      get: {
+        tags: ['User'],
         security: [{ FirebaseUidAuth: [] }],
-    summary: 'Get all plans and sessions for the logged-in student',
-    description:
-      'Returns all Correction, Memorization, and Child Memorization programs for the authenticated student, each with their associated sessions, teacher info, and session summary.',
-    responses: {
-      200: {
-        description: 'Plans and sessions retrieved successfully',
-        content: {
-          'application/json': {
-            schema: {
-              type: 'object',
-              properties: {
-                status: { type: 'string', example: 'success' },
-                totalPlans: { type: 'number', example: 3 },
-                totalSessions: { type: 'number', example: 12 },
-                sessionsSummary: {
+        summary: 'Get all plans and sessions for the logged-in student',
+        description:
+          'Returns all Correction, Memorization, and Child Memorization programs for the authenticated student, each with their associated sessions, teacher info, and session summary.',
+        responses: {
+          200: {
+            description: 'Plans and sessions retrieved successfully',
+            content: {
+              'application/json': {
+                schema: {
                   type: 'object',
                   properties: {
-                    total: { type: 'number', example: 12 },
-                    pending: { type: 'number', example: 1 },
-                    scheduled: { type: 'number', example: 6 },
-                    started: { type: 'number', example: 2 },
-                    completed: { type: 'number', example: 3 },
-                    cancelled: { type: 'number', example: 0 },
-                  },
-                },
-                data: {
-                  type: 'object',
-                  properties: {
-                    memorizationPrograms: {
-                      type: 'array',
-                      items: {
-                        $ref: '#/components/schemas/MemorizationProgram'
+                    status: { type: 'string', example: 'success' },
+                    totalPlans: { type: 'number', example: 3 },
+                    totalSessions: { type: 'number', example: 12 },
+                    sessionsSummary: {
+                      type: 'object',
+                      properties: {
+                        total: { type: 'number', example: 12 },
+                        pending: { type: 'number', example: 1 },
+                        scheduled: { type: 'number', example: 6 },
+                        started: { type: 'number', example: 2 },
+                        completed: { type: 'number', example: 3 },
+                        cancelled: { type: 'number', example: 0 },
                       },
                     },
-                    correctionPrograms: {
-                      type: 'array',
-                      items: {
-                        $ref: '#/components/schemas/CorrectionProgram'
-                      },
-                    },
-                    childMemorizationPrograms: {
-                      type: 'array',
-                      items: {
-                        $ref: '#/components/schemas/ChildMemorizationProgram'
-                      },
-                    },
-                    allPlans: {
-                      type: 'array',
-                      description: 'All plans combined and sorted by creation date',
-                      items: {
-                        type: 'object',
-                        properties: {
-                          _id: { type: 'string' },
-                          programType: {
-                            type: 'string',
-                            enum: [
-                              'MemorizationProgram',
-                              'CorrectionProgram',
-                              'ChildMemorizationProgram'
-                            ],
+                    data: {
+                      type: 'object',
+                      properties: {
+                        memorizationPrograms: {
+                          type: 'array',
+                          items: {
+                            $ref: '#/components/schemas/MemorizationProgram',
                           },
-                          teacher: {
+                        },
+                        correctionPrograms: {
+                          type: 'array',
+                          items: {
+                            $ref: '#/components/schemas/CorrectionProgram',
+                          },
+                        },
+                        childMemorizationPrograms: {
+                          type: 'array',
+                          items: {
+                            $ref: '#/components/schemas/ChildMemorizationProgram',
+                          },
+                        },
+                        allPlans: {
+                          type: 'array',
+                          description: 'All plans combined and sorted by creation date',
+                          items: {
                             type: 'object',
                             properties: {
-                              name: { type: 'string' },
-                              email: { type: 'string' },
-                              profile_picture: { type: 'string' },
+                              _id: { type: 'string' },
+                              programType: {
+                                type: 'string',
+                                enum: [
+                                  'MemorizationProgram',
+                                  'CorrectionProgram',
+                                  'ChildMemorizationProgram',
+                                ],
+                              },
+                              teacher: {
+                                type: 'object',
+                                properties: {
+                                  name: { type: 'string' },
+                                  email: { type: 'string' },
+                                  profile_picture: { type: 'string' },
+                                },
+                              },
+                              sessions: {
+                                type: 'array',
+                                items: { $ref: '#/components/schemas/Session' },
+                              },
                             },
-                          },
-                          sessions: {
-                            type: 'array',
-                            items: { $ref: '#/components/schemas/Session' },
                           },
                         },
                       },
@@ -967,20 +983,17 @@ Only works if role="admin" is sent in the request body.
               },
             },
           },
-        },
-      },
-      401: {
-        description: 'Unauthorized – Student not logged in',
-        content: {
-          'application/json': {
-            schema: { $ref: '#/components/schemas/ErrorResponse' },
+          401: {
+            description: 'Unauthorized – Student not logged in',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
           },
         },
       },
     },
-  },
-},
-
 
     // '/users/changeMyPassword': {
     //   put: {
@@ -2810,6 +2823,202 @@ Valid program preferences:
               },
             },
           },
+        },
+      },
+    },
+    '/events': {
+      post: {
+        tags: ['Events'],
+        security: [{ FirebaseUidAuth: [] }],
+        summary: 'Create a new event (Admin only)',
+        description: 'Creates an event with image, start/end date, and details.',
+        requestBody: {
+          required: true,
+          content: {
+            'multipart/form-data': {
+              schema: {
+                type: 'object',
+                properties: {
+                  title: { type: 'string', example: 'Ramadan Offer' },
+                  description: { type: 'string', example: 'Special discount during Ramadan' },
+                  startDate: {
+                    type: 'string',
+                    format: 'date-time',
+                    example: '2025-02-01T00:00:00Z',
+                  },
+                  endDate: { type: 'string', format: 'date-time', example: '2025-02-15T23:59:59Z' },
+                  eventImage: {
+                    type: 'string',
+                    format: 'binary',
+                    description: 'Event banner image',
+                  },
+                },
+                required: ['title', 'startDate', 'endDate', 'eventImage'],
+              },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: 'Event created successfully',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Event' },
+              },
+            },
+          },
+          400: {
+            description: 'Validation error or missing required fields',
+          },
+        },
+      },
+      get: {
+        tags: ['Events'],
+        security: [{ FirebaseUidAuth: [] }],
+        summary: 'Get all events with filters for active or inactive status',
+        description:
+          'Returns all events. Supports filtering with ?status=active / ?status=inactive or ?isActive=true / false.',
+        parameters: [
+          {
+            name: 'isActive',
+            in: 'query',
+            required:false,
+            schema: {
+              type: 'string',
+              enum: ['true', 'false'],
+            },
+            description: 'Filter by stored isActive field',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Events retrieved successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string', example: 'success' },
+                    count: { type: 'number', example: 3 },
+                    totalInDatabase: { type: 'number', example: 5 },
+                    filterApplied: {
+                      type: 'object',
+                      properties: {
+                        status: { type: 'string', example: 'active' },
+                        isActive: { type: 'string', example: 'true' },
+                      },
+                    },
+                    data: {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/Event' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/events/{id}': {
+      get: {
+        tags: ['Events'],
+        summary: 'Get a specific event by ID',
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Event retrieved successfully',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Event' },
+              },
+            },
+          },
+          404: { description: 'Event not found' },
+        },
+      },
+      patch: {
+        tags: ['Events'],
+        security: [{ FirebaseUidAuth: [] }],
+        summary: 'Update an event (Admin only)',
+        description: 'Allows title, description, dates, active state, and image update.',
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+          },
+        ],
+        requestBody: {
+          content: {
+            'multipart/form-data': {
+              schema: {
+                type: 'object',
+                properties: {
+                  title: { type: 'string' },
+                  description: { type: 'string' },
+                  isActive: { type: 'boolean' },
+                  startDate: { type: 'string', format: 'date-time' },
+                  endDate: { type: 'string', format: 'date-time' },
+                  eventImage: {
+                    type: 'string',
+                    format: 'binary',
+                    description: 'Optional new event image',
+                    required:false
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Event updated successfully',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Event' },
+              },
+            },
+          },
+          404: { description: 'Event not found' },
+        },
+      },
+      delete: {
+        tags: ['Events'],
+        security: [{ FirebaseUidAuth: [] }],
+        summary: 'Delete an event (Admin only)',
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Event deleted successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string', example: 'success' },
+                    message: { type: 'string', example: 'Event deleted successfully' },
+                  },
+                },
+              },
+            },
+          },
+          404: { description: 'Event not found' },
         },
       },
     },

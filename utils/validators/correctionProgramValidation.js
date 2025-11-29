@@ -28,11 +28,11 @@ exports.createCorrectionProgramValidator = [
   check('planName')
     .notEmpty()
     .withMessage('Plan name is required')
-    // .custom((val) =>
-    //   CorrectionProgram.find({ planName: val }).then((program) => {
-    //     if (program) return Promise.reject(new Error('Program name already exists'));
-    //   })
-   // ),
+    .custom((val) =>
+      CorrectionProgram.find({ planName: val }).then((program) => {
+        if (program) return Promise.reject(new Error('Program name already exists'));
+      })
+   ),
 ,
   check('fromSurah').notEmpty().withMessage('Starting surah is required'),
   check('toSurah').notEmpty().withMessage('Ending surah is required'),

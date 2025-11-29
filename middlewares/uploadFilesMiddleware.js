@@ -28,6 +28,24 @@ const storage = new CloudinaryStorage({
       };
     }
 
+    if (file.fieldname === 'eventImage') {
+      return {
+        folder: `${baseFolder}/events`,
+        allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+        public_id: `${req.body.title?.replace(/\s+/g, '_').toLowerCase() || 'event'}_${now}`,
+        transformation: [{ width: 1200, height: 600, crop: 'fill', quality: 'auto' }],
+      };
+    }
+
+    if (file.fieldname === 'bannerImage') {
+      return {
+        folder: `${baseFolder}/banners`,
+        allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+        public_id: `${req.body.title?.replace(/\s+/g, '_').toLowerCase() || 'banner'}_${now}`,
+        transformation: [{ width: 1920, height: 400, crop: 'fill', quality: 'auto' }],
+      };
+    }
+
     return { folder: `${baseFolder}/uploads`, resource_type: 'auto' };
   },
 });
@@ -38,6 +56,8 @@ const upload = multer({
 }).fields([
   { name: 'profile_picture', maxCount: 1 },
   { name: 'certificates', maxCount: 10 },
+  { name: 'eventImage', maxCount: 1 },
+  { name: 'bannerImage', maxCount: 1 },
 ]);
 
 exports.uploadFiles = (req, res, next) => {
@@ -59,12 +79,25 @@ exports.uploadFiles = (req, res, next) => {
             fileName: f.originalname,
           }))
         : [],
+
+      eventImage: req.files?.eventImage
+        ? req.files.eventImage.map((f) => ({
+            fileUrl: f.path,
+            fileName: f.originalname,
+          }))
+        : [],
+
+      bannerImage: req.files?.bannerImage
+        ? req.files.bannerImage.map((f) => ({
+            fileUrl: f.path,
+            fileName: f.originalname,
+          }))
+        : [],
     };
 
     next();
   });
 };
-
 
 // const multer = require('multer');
 // const { CloudinaryStorage } = require('multer-storage-cloudinary');

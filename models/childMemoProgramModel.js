@@ -43,16 +43,15 @@ const childMemProgramSchema = new mongoose.Schema(
     //   validate: [(arr) => arr.length <= 5, 'Cannot exceed 5 days per week'],
     //   default: [],
     // },
- preferredTimes: [
-  {
-    day: {
-      type: String,
-      enum: ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
-    },
-    start: String // e.g. "18:00"
-  }
-],
-
+    preferredTimes: [
+      {
+        day: {
+          type: String,
+          enum: ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
+        },
+        start: String, // e.g. "18:00"
+      },
+    ],
 
     // Teacher/session preferences
     teacherGender: {
@@ -85,6 +84,12 @@ const childMemProgramSchema = new mongoose.Schema(
     trialSession: {
       type: Boolean,
       default: false,
+    },
+    meetingLing: String,
+    meetingId: {
+      type: String,
+      unique:false,
+      default: () => crypto.randomBytes(8).toString('hex'),
     },
     // meta
     lastSession: {

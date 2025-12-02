@@ -8,9 +8,9 @@ const correctionProgramSchema = new mongoose.Schema(
       required: true,
     },
 
-        // 🎯 NEW — To match your hardcoded types
+    // 🎯 NEW — To match your hardcoded types
     programTypeId: { type: Number, default: 1 }, // always 1
-    programTypeKey: { type: String, default: "correction" },
+    programTypeKey: { type: String, default: 'correction' },
 
     teacher: {
       type: mongoose.Schema.ObjectId,
@@ -25,6 +25,12 @@ const correctionProgramSchema = new mongoose.Schema(
         'performance_development',
       ],
       required: [true, 'Goal is required'],
+    },
+    meetingLing: String,
+    meetingId: {
+      type: String,
+      unique: false,
+      default: () => crypto.randomBytes(8).toString('hex'),
     },
     currentLevel: {
       type: String,
@@ -43,11 +49,11 @@ const correctionProgramSchema = new mongoose.Schema(
     },
     preferredTimes: {
       type: [String],
-     // enum: ['6-9_am', '10-1_pm', '2-5_pm', '6-9_pm', '10-1_am'],
+      // enum: ['6-9_am', '10-1_pm', '2-5_pm', '6-9_pm', '10-1_am'],
     }, // e.g. ['evening', 'afternoon']
     days: {
       type: [String],
-      required:true,
+      required: true,
       enum: ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
       validate: [(arr) => arr.length <= 5, 'Cannot select more than 5 days'],
     },
@@ -72,10 +78,10 @@ const correctionProgramSchema = new mongoose.Schema(
       max: 5,
       default: 1,
     },
-      packageDuration:{
-      type:Number,
-      enum:[1,3,6],
-      required:true
+    packageDuration: {
+      type: Number,
+      enum: [1, 3, 6],
+      required: true,
     },
     totalPages: {
       type: Number,

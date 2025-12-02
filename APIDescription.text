@@ -1,0 +1,35 @@
+1️⃣ User Registration Flow
+API: POST /auth/register
+A user registers either as:
+✔ Student
+OR
+✔ Teacher (pending approval)
+
+2️⃣ Student Creates a Program 
+A student chooses the type of program:
+POST /programs/correction
+✔ CorrectionProgram
+POST /programs/memorization                                                             
+✔ MemorizationProgram
+POST /programs/child
+✔ ChildMemorizationProgram
+
+Program is created but no sessions yet 
+Only free trial sessions would be created
+Teacher may or may not be assigned yet
+
+
+3️⃣ Student Books Sessions
+⭐ A. Book a Single Session
+API: POST /sessions/book
+⭐ B. Generate Full Plan Automatically
+API: POST /sessions/:id/generatePlan
+
+4️⃣ Student Views Their Plans
+API: GET /myPlans
+
+5️⃣  Teacher schedule trial sessions
+PATCH /sessions/:id
+
+6️⃣ Teacher Views Their Sessions
+API: GET /mySessions

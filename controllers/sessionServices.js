@@ -1,6 +1,7 @@
 const asyncHandler = require('express-async-handler');
 const Session = require('../models/sessionModel');
 const User = require('../models/userModel');
+const { ensureProgramMeetingId } = require('../utils/meeting');
 const ApiError = require('../utils/apiError');
 const MemorizationProgram = require('../models/memorizationProgramModel');
 const CorrectionProgram = require('../models/correctionProgramModel');
@@ -40,89 +41,6 @@ const checkOverLap = asyncHandler(async ({ teacherId, start, duration }) => {
   return !!conflict;
 });
 
-// helper: map different field names for weekly sessions
-// function getWeeklySessionsFromProgram(program) {
-//   return program.weeklySessions ?? program.sessionsPerWeek ?? 1;
-// }
-
-// function getDatesForWeekdays({ daysOfWeek = [], startDate = new Date(), totalSessions = 0 }) {
-//   const days = (daysOfWeek || []).map((d) => d.toLowerCase());
-//   if (!days || days.length === 0) return [];
-//   const weekdayIndex = {
-//     sunday: 0,
-//     monday: 1,
-//     tuesday: 2,
-//     wednesday: 3,
-//     thursday: 4,
-//     friday: 5,
-//     saturday: 6,
-//   };
-
-//   // convert day strings to numeric indices sorted ascending within week order
-//   const dayIndices = days
-//     .map((d) => (weekdayIndex[d] === undefined ? null : weekdayIndex[d]))
-//     .filter((i) => i !== null)
-//     .sort((a, b) => a - b);
-
-//   const results = [];
-//   let cursor = new Date(startDate);
-//   cursor.setSeconds(0, 0);
-
-//   while (results.length < totalSessions) {
-//     const dow = cursor.getDay();
-//     if (dayIndices.includes(dow)) {
-//       results.push(new Date(cursor));
-//     }
-//     cursor.setDate(cursor.getDate() + 1);
-//   }
-//   return results;
-// }
-
-// // helper: check teacher availability for a date/time
-// // teacherSchedule shape expected: [{ day: 'sunday', slots: [{start:'14:00', end:'16:00'}] }, ...]
-// function isTeacherAvailableAt(teacher, sessionDate) {
-//   const schedule =
-//     teacher.teacherProfile?.availabilitySchedule ??
-//     teacher.teacherProfile?.availability_schedule ??
-//     [];
-
-//   if (!schedule || !Array.isArray(schedule)) return false;
-
-//   const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-
-//   const dayName = daysOfWeek[sessionDate.getDay()];
-
-//   const dayRecord = schedule.find(
-//     (d) => String(d.day).toLowerCase() === String(dayName).toLowerCase()
-//   );
-//   if (!dayRecord) return false;
-
-//   const timeStr = sessionDate.toTimeString().substring(0, 5); // "HH:MM"
-//   // if slots missing or not array => unavailable
-//   if (!Array.isArray(dayRecord.slots) || dayRecord.slots.length === 0) return false;
-
-//   return dayRecord.slots.some((slot) => {
-//     // slot.start / slot.end expected "HH:MM"
-//     return timeStr >= slot.start && timeStr < slot.end;
-//   });
-// }
-
-// function parseSessionTime(raw) {
-//   if (!raw) return [];
-//   // If already an object (Postman JSON)
-//   if (typeof raw === 'object') return raw;
-
-//   // If string (Swagger sends strings)
-//   if (typeof raw === 'string') {
-//     try {
-//       return JSON.parse(raw);
-//     } catch (err) {
-//       throw new ApiError('Invalid time format. Must be valid JSON.', 400);
-//     }
-//   }
-
-//   return [];
-// }
 function formatTime(date) {
   return date.toTimeString().slice(0, 5);
 }
@@ -194,6 +112,7 @@ async function generatePlanSessionsLogic(program, teacher, programModel) {
   const totalSessions = weeklySessions * weeks;
   const programId = program._id;
 
+  await ensureProgramMeetingId(program);
   // NORMALIZE preferred times for each program type
   let preferred = [];
 
@@ -367,6 +286,8 @@ async function generatePlanSessionsLogic(program, teacher, programModel) {
         status: 'scheduled',
         scheduledAtDate: new Date(startDate),
         scheduledAt: [{ day: pref.day, slots: [{ start: pref.start }] }],
+        meetingId: program.meetingId,
+        meetingLink: program.meetingLink || null,
       });
 
       created.push(newSession);
@@ -422,7 +343,7 @@ exports.generatePlanSessions = asyncHandler(async (req, res, next) => {
   if (!ProgramModel) return next(new ApiError('Program not found', 404));
   const program = await ProgramModel.findById(programId);
   if (!program) return next(new ApiError('Program not found', 404));
-
+  await ensureProgramMeetingId(program);
   const teacher = await User.findById(program.teacher);
   if (!teacher) return next(new ApiError('Teacher not found', 404));
 
@@ -572,6 +493,7 @@ exports.bookProgramSession = asyncHandler(async (req, res, next) => {
     return next(new ApiError('Teacher already has a session at this time', 400));
   }
 
+  await ensureProgramMeetingId(program);
   // 5) Build correct session payload (matches your Session model)
   const sessionPayload = {
     program: programId,
@@ -590,6 +512,8 @@ exports.bookProgramSession = asyncHandler(async (req, res, next) => {
         ],
       },
     ],
+    meetingId: program.meetingId,
+    meetingLink: program.meetingLink || null,
   };
 
   const session = await Session.create(sessionPayload);

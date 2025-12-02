@@ -5,6 +5,7 @@ const {
   assignTeacherSpecilaization,
   getSpecificTeacherData,
   getAllActiveTeachers,
+  rateTeacher,
   getTeacherSessions
 } = require('../controllers/teacherRequestService');
 const {
@@ -23,6 +24,7 @@ const { firebaseAuth } = require('../middlewares/firebaseAuth');
 
 router.use(firebaseAuth);
 
+router.post('/rate',allowedTo('student'),rateTeacher)
 router.get('/Mytrials', allowedTo('teacher'), getAssignedTeacherTrials);
 router.route('/brief').get(getAllTeachersShortly);
 router.get('/trials', allowedTo('admin'), getAllFreeTrials);
@@ -35,7 +37,7 @@ router.patch(
   allowedTo('admin'),
   assignTeacherSpecilaization
 );
-router.get('/mySessions',allowedTo('teacher'),getTeacherSessions)
+router.get('/mySessions', allowedTo('teacher'), getTeacherSessions);
 router.route('/:id').get(getSpecificTeacherData);
 router.get('/:id/schedules', allowedTo('student', 'admin'), getTeacherSchedulesById);
 

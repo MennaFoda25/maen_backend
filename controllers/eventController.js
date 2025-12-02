@@ -6,15 +6,12 @@ const ApiError = require('../utils/apiError');
 // @route   POST /api/v1/events
 // @access  Private (Admin)
 exports.createEvent = asyncHandler(async (req, res, next) => {
-  const { title, description, startDate, endDate } = req.body;
+  const { title, description, startDate, endDate ,price} = req.body;
 
-  console.log(`📝 Creating event with title: "${title}"`);
-  console.log(`   Dates: ${startDate} to ${endDate}`);
 
   // Get image URL from uploaded files
   const imageUrl = req.uploadedFiles?.eventImage?.[0]?.fileUrl;
   if (!imageUrl) {
-    console.log(`❌ No image URL found`);
     return next(new ApiError('Event image is required', 400));
   }
 
@@ -28,6 +25,7 @@ exports.createEvent = asyncHandler(async (req, res, next) => {
     startDate: new Date(startDate),
     endDate: new Date(endDate),
     isActive: true,
+    price
   });
 
   console.log(`✨ Event created successfully with ID: ${event._id}`);
@@ -44,7 +42,6 @@ exports.createEvent = asyncHandler(async (req, res, next) => {
 // @access  Public
 exports.getAllEvents = asyncHandler(async (req, res, next) => {
   try {
-
     const now = new Date();
     // Count total events first
     const totalCount = await Event.countDocuments({});
@@ -118,7 +115,7 @@ exports.getEventById = asyncHandler(async (req, res, next) => {
 // @route   PATCH /api/v1/events/:id
 // @access  Private (Admin)
 exports.updateEvent = asyncHandler(async (req, res, next) => {
-  const { title, description, startDate, endDate, isActive } = req.body;
+  const { title, description, startDate, endDate, isActive ,price} = req.body;
 
   const event = await Event.findById(req.params.id);
 
@@ -172,7 +169,7 @@ exports.updateEvent = asyncHandler(async (req, res, next) => {
   if (isActive !== undefined) {
     event.isActive = isActive;
   }
-
+if(price) event.price =price
   // Update image if provided
   if (req.uploadedFiles?.eventImage?.[0]?.fileUrl) {
     event.imageUrl = req.uploadedFiles.eventImage[0].fileUrl;

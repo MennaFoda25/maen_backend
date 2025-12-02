@@ -27,27 +27,48 @@ exports.createAdmin = asyncHandler(async (req, res, next) => {
 // @route   PUT /api/v1/users/:id
 // @access  Private/Admin
 exports.updateUser = asyncHandler(async (req, res, next) => {
-const user = req.user
+  const user = req.user;
 
-  if (req.body.password ) {
-    return next(
-      new ApiError('You cannot update password from here, please use /changeMyPassword route', 400)
-    );
+  // Debug logging
+  console.log('=== UPDATE USER DEBUG ===');
+  console.log('req.uploadedFiles:', req.uploadedFiles);
+  console.log('profile_picture:', req.uploadedFiles?.profile_picture);
+  console.log('req.body:', req.body);
+
+  // if (req.body.password) {
+  //   return next(
+  //     new ApiError('You cannot update password from here, please use /changeMyPassword route', 400)
+  //   );
+  // }
+
+  // Handle case where req.body is null (when only files are uploaded)
+  if (!req.body) {
+    req.body = {};
   }
+
   // Remove empty strings that Swagger sends
-Object.keys(req.body).forEach((key) => {
-  if (req.body[key] === '') {
-    delete req.body[key];
-  }
-});
+  Object.keys(req.body).forEach((key) => {
+    if (req.body[key] === '') {
+      delete req.body[key];
+    }
+  });
 
-  const allowedFields = ['name', 'slug', 'phone', 'email', 'profile_picture'];
+  const allowedFields = ['name', 'slug', 'phone', 'email'];
   const updateData = {};
 
   for (const field of allowedFields) {
     if (req.body[field] !== undefined) {
       updateData[field] = req.body[field];
     }
+  }
+
+  // Handle profile picture upload (from file upload middleware)
+  console.log('Checking profile picture:', req.uploadedFiles?.profile_picture?.[0]);
+  if (req.uploadedFiles?.profile_picture?.[0]?.fileUrl) {
+    console.log('Profile picture found:', req.uploadedFiles.profile_picture[0].fileUrl);
+    updateData.profile_picture = req.uploadedFiles.profile_picture[0].fileUrl;
+  } else {
+    console.log('No profile picture uploaded');
   }
   // const updateData = {
   //   name: req.body.name || user.name,
@@ -58,7 +79,7 @@ Object.keys(req.body).forEach((key) => {
   // };
 
   if (user.role === 'student') {
-    const { learning_goals, current_level,preferredTimes } = req.body;
+    const { learning_goals, current_level, preferredTimes } = req.body;
     updateData.studentProfile = {
       learning_goals: learning_goals
         ? Array.isArray(learning_goals)
@@ -89,13 +110,17 @@ Object.keys(req.body).forEach((key) => {
               .split(',')
               .map((v) => v.trim())
         : (user.teacherProfile?.availabilitySchedule ?? []),
-      certificates: certificates
-        ? Array.isArray(certificates)
-          ? certificates
-          : String(certificates)
-              .split(',')
-              .map((v) => v.trim())
-        : (user.teacherProfile?.certificates ?? []),
+      // Handle certificate uploads from file upload middleware
+      certificates:
+        req.uploadedFiles?.certificates?.length > 0
+          ? req.uploadedFiles.certificates.map((cert) => cert.fileUrl)
+          : certificates
+            ? Array.isArray(certificates)
+              ? certificates
+              : String(certificates)
+                  .split(',')
+                  .map((v) => v.trim())
+            : (user.teacherProfile?.certificates ?? []),
     };
   }
 

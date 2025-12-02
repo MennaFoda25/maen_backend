@@ -64,13 +64,21 @@ exports.uploadFiles = (req, res, next) => {
   upload(req, res, (err) => {
     if (err) return next(new ApiError(err.message, 400));
 
+    console.log('=== UPLOAD MIDDLEWARE DEBUG ===');
+    console.log('req.files:', req.files);
+    console.log('profile_picture files:', req.files?.profile_picture);
+
     // ✅ Build a uniform object for controller use
     req.uploadedFiles = {
       profile_picture: req.files?.profile_picture
-        ? req.files.profile_picture.map((f) => ({
-            fileUrl: f.path,
-            fileName: f.originalname,
-          }))
+        ? req.files.profile_picture.map((f) => {
+            console.log('File object:', f);
+            console.log('f.path:', f.path);
+            return {
+              fileUrl: f.path,
+              fileName: f.originalname,
+            };
+          })
         : [],
 
       certificates: req.files?.certificates
@@ -95,6 +103,7 @@ exports.uploadFiles = (req, res, next) => {
         : [],
     };
 
+    console.log('Final req.uploadedFiles:', req.uploadedFiles);
     next();
   });
 };

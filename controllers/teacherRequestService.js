@@ -3,6 +3,7 @@ const ApiError = require('../utils/apiError');
 const TeacherRequest = require('../models/teacherRequestModel');
 const User = require('../models/userModel');
 const factory = require('../controllers/handlerFactory');
+const Session = require('../models/sessionModel');
 
 const safeJsonParse = (data, fallback = {}) => {
   return typeof data === 'string' ? JSON.parse(data) : data || fallback;
@@ -361,5 +362,44 @@ exports.getTeacherSessions = asyncHandler(async (req, res, next) => {
     },
     data: sessions,
     groupedByStatus,
+  });
+});
+
+exports.rateTeacher = asyncHandler(async (req, res, next) => {
+  const { teacherId, rating } = req.body;
+  const student = req.user._id;
+
+  if (!rating || rating < 1 || rating > 5) {
+    return next(new ApiError('Rating must be between 1 and 5', 400));
+  }
+  const teacher = await User.findById(teacherId);
+  // OPTIONAL: Check if student has taken at least one session with this teacher
+  const hasSession = await Session.findOne({
+    student: student,
+    teacher: teacherId,
+    status: 'completed',
+  });
+
+  if (!hasSession) {
+    return next(new ApiError('You can only rate teachers you have completed sessions with', 403));
+  }
+  // Update rating
+  const oldAvg = teacher.rating || 0;
+  const oldCount = teacher.ratingCount || 0;
+
+  const newAvg = (oldAvg * oldCount + rating) / (oldCount + 1);
+  teacher.rating = newAvg;
+  teacher.ratingCount = oldCount + 1;
+
+  await teacher.save();
+
+  res.status(200).json({
+    status: 'success',
+    message: 'Rating submitted successfully',
+    data: {
+      teacherId,
+      newRating: teacher.rating,
+      totalRatings: teacher.ratingCount,
+    },
   });
 });

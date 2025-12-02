@@ -46,6 +46,13 @@ const memorizationProgramSchema = new mongoose.Schema(
       required: true,
     },
 
+    meetingLing: String,
+    meetingId: {
+      type: String,
+      unique: false,
+      default: () => crypto.randomBytes(8).toString('hex'),
+    },
+
     // 🔹 Memorization Details
     memorizationRange: {
       fromSurah: String,

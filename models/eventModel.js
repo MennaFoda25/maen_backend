@@ -13,6 +13,7 @@ const eventSchema = new mongoose.Schema(
     // - true = event should be displayed (admin enabled it AND endDate hasn't passed)
     // - false = event should not be displayed (admin disabled it OR endDate has passed)
     isActive: { type: Boolean, default: true },
+    price:{type: Number}
   },
   { timestamps: true }
 );
@@ -34,13 +35,13 @@ eventSchema.pre(/^find/, function (next) {
   const now = new Date();
   // Update any documents where endDate has passed to set isActive = false
   const originalExec = this.exec.bind(this);
-  
-  this.exec = function() {
-    return originalExec().then(docs => {
+
+  this.exec = function () {
+    return originalExec().then((docs) => {
       if (!Array.isArray(docs)) return docs;
-      
+
       // Mark expired events as inactive in the response
-      docs.forEach(doc => {
+      docs.forEach((doc) => {
         if (doc.endDate && now > doc.endDate) {
           doc.isActive = false;
         }
@@ -48,7 +49,7 @@ eventSchema.pre(/^find/, function (next) {
       return docs;
     });
   };
-  
+
   next();
 });
 

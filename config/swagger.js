@@ -1,5 +1,3 @@
-const CorrectionProgram = require('../models/correctionProgramModel');
-
 module.exports = {
   openapi: '3.0.0',
   info: {
@@ -9,11 +7,11 @@ module.exports = {
   },
   servers: [
     {
-      url: 'http://localhost:3000/api/v1',
-      // url: 'https://maen-backend.onrender.com/api/v1',
+      //url: 'http://localhost:3000/api/v1',
+      url: 'https://maen-backend.onrender.com/api/v1',
       // description: 'local dev server',
-      //description:
-      //  process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server',
+      description:
+        process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server',
     },
   ],
   components: {
@@ -133,16 +131,96 @@ module.exports = {
           imageUrl: { type: 'string', example: 'https://example.com/banner.png' },
           startDate: { type: 'string', format: 'date-time' },
           endDate: { type: 'string', format: 'date-time' },
-          isActive: { type: 'boolean', example: true },
+          isActive: {
+            type: 'boolean',
+            example: true,
+            description: 'Admin-controlled flag. Automatically set to false if endDate has passed.',
+          },
+          price: {
+            type: 'Number',
+          },
+          computedStatus: {
+            type: 'string',
+            enum: ['active', 'inactive'],
+            example: 'active',
+            description:
+              'Computed at runtime: "active" if between startDate and endDate, "inactive" otherwise',
+          },
           createdAt: { type: 'string', format: 'date-time' },
           updatedAt: { type: 'string', format: 'date-time' },
         },
       },
-
+      ConversationResponse: {
+        type: 'object',
+        properties: {
+          status: { type: 'string', example: 'success' },
+          conversation: {
+            type: 'object',
+            properties: {
+              _id: { type: 'string' },
+              participants: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    _id: { type: 'string' },
+                    name: { type: 'string' },
+                    profile_picture: { type: 'string' },
+                  },
+                },
+              },
+              messages: {
+                type: 'array',
+                items: { $ref: '#/components/schemas/Message' },
+              },
+              lastMessage: { type: 'string' },
+              lastMessageAt: { type: 'string', format: 'date-time' },
+            },
+          },
+        },
+      },
+      Message: {
+        type: 'object',
+        properties: {
+          _id: { type: 'string' },
+          sender: {
+            type: 'object',
+            properties: {
+              _id: { type: 'string' },
+              name: { type: 'string' },
+            },
+          },
+          text: { type: 'string' },
+          attachmentUrl: { type: 'string' },
+          isRead: { type: 'boolean' },
+          createdAt: { type: 'string', format: 'date-time' },
+        },
+      },
+      GetMessagesResponse: {
+        type: 'object',
+        properties: {
+          status: { type: 'string', example: 'success' },
+          messages: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/Message' },
+          },
+        },
+      },
+      MyConversationsResponse: {
+        type: 'object',
+        properties: {
+          status: { type: 'string' },
+          count: { type: 'number' },
+          conversations: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/ConversationResponse' },
+          },
+        },
+      },
       CorrectionProgram: {
         type: 'object',
         properties: {
-          assignedTeacher: { $ref: '#/components/schemas/TeacherProfile' },
+          teacher: { $ref: '#/components/schemas/TeacherProfile' },
           goal: {
             type: 'String',
             example:
@@ -172,7 +250,7 @@ module.exports = {
             example: '690f6a32470c4db837fc02a5',
           },
 
-          assignedTeacher: {
+          teacher: {
             type: 'string',
             example: '68fe72e608a6a18c0ec78d56',
           },
@@ -254,7 +332,7 @@ module.exports = {
           _id: { type: 'string', example: '691c00bb218cce45f1122445' },
 
           parent: { type: 'string', example: '690f6a32470c4db837fc02a5' },
-          assignedTeacher: { type: 'string', example: '68fe72e608a6a18c0ec78d56' },
+          teacher: { type: 'string', example: '68fe72e608a6a18c0ec78d56' },
 
           childName: { type: 'string', example: 'Omar Mohamed' },
           gender: { type: 'string', enum: ['male', 'female'], example: 'male' },
@@ -358,6 +436,28 @@ module.exports = {
           message: { type: 'string', example: 'Teacher request approved' },
           teacherReq: { $ref: '#/components/schemas/TeacherRequest' },
           user: { $ref: '#/components/schemas/UserShort' },
+        },
+      },
+      ProgramTypeListResponse: {
+        type: 'object',
+        properties: {
+          status: { type: 'string', example: 'success' },
+          count: { type: 'number', example: 3 },
+          data: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                _id: { type: 'string', example: '691b9db0a54c5ba22b4be2f3' },
+                name: { type: 'string', example: 'Memorization Program' },
+                description: { type: 'string', example: 'Quran memorization and revision' },
+                teachers: {
+                  type: 'array',
+                  items: { $ref: '#/components/schemas/UserShort' },
+                },
+              },
+            },
+          },
         },
       },
     },
@@ -654,12 +754,17 @@ module.exports = {
         summary: 'Update logged-in user profile (student & teacher)',
         description: `
 Allows the authenticated user to update their personal and profile information.
-Password cannot be changed here (must use /changeMyPassword).
-Supports updating:
-- name, email, phone, slug, profile picture
-- studentProfile (learning_goals, current_level)
-- teacherProfile (bio, specialties, certificates, hourly_rate, availability_schedule)
-    `,
+Supports multipart/form-data for file uploads:
+- profile_picture: Upload new profile image (jpg, png, webp, max 10MB)
+- certificates: Upload teacher certificates (pdf, jpg, png, max 10MB each, up to 10 files)
+
+Also supports updating text fields:
+- name, email, phone, slug (common fields)
+- learning_goals, current_level (student fields)
+- bio, specialties, hourly_rate, availabilitySchedule (teacher fields)
+
+Password cannot be changed here (use /changeMyPassword endpoint instead).
+        `,
         security: [{ FirebaseUidAuth: [] }],
         requestBody: {
           required: false,
@@ -667,7 +772,6 @@ Supports updating:
             'multipart/form-data': {
               schema: {
                 type: 'object',
-                required: [],
                 properties: {
                   name: { type: 'string', example: 'Updated Name', nullable: true },
                   email: { type: 'string', example: 'updated@gmail.com', nullable: true },
@@ -676,7 +780,8 @@ Supports updating:
                   profile_picture: {
                     type: 'string',
                     format: 'binary',
-                    description: 'Optional profile picture',
+                    description:
+                      'Profile picture image file (jpg, png, webp, max 10MB). For students & teachers.',
                     nullable: true,
                   },
 
@@ -684,13 +789,13 @@ Supports updating:
                   learning_goals: {
                     type: 'string',
                     example: 'Hifz,Tajweed',
-
-                    description: 'Comma-separated or array',
+                    description: 'Comma-separated or array of learning goals',
                     nullable: true,
                   },
                   current_level: {
                     type: 'string',
                     example: 'intermediate',
+                    description: 'Current Quraan proficiency level',
                     nullable: true,
                   },
 
@@ -699,20 +804,21 @@ Supports updating:
                   specialties: {
                     type: 'string',
                     example: 'Tajweed,Grammar',
-                    description: 'Comma-separated or array',
+                    description: 'Comma-separated teaching specialties',
                     nullable: true,
                   },
                   hourly_rate: { type: 'number', example: 20, nullable: true },
-                  availability_schedule: {
+                  availabilitySchedule: {
                     type: 'string',
                     example: 'sunday-10-12,monday-8-10',
-                    description: 'Comma-separated or array',
+                    description: 'Comma-separated availability slots',
                     nullable: true,
                   },
                   certificates: {
-                    type: 'string',
-                    example: 'Ijazah,Certified Tajweed',
-                    description: 'Comma-separated or array',
+                    type: 'array',
+                    items: { type: 'string', format: 'binary' },
+                    description:
+                      'Certificate files for teachers (pdf, jpg, png, up to 10 files, max 10MB each). Can also send certificate names as comma-separated text.',
                     nullable: true,
                   },
                 },
@@ -737,7 +843,7 @@ Supports updating:
             },
           },
           400: {
-            description: 'Password update attempt or validation error',
+            description: 'Password update attempt, validation error, or file upload error',
             content: {
               'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } },
             },
@@ -869,7 +975,7 @@ Only works if role="admin" is sent in the request body.
       delete: {
         tags: ['Admin'],
         summary: 'Delete a user (admin only)',
-        security: [{ bearerAuth: [] }],
+        security: [{ FirebaseUidAuth: [] }],
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
         responses: {
           204: {
@@ -1021,7 +1127,9 @@ Only works if role="admin" is sent in the request body.
     '/users/{id}/suspend': {
       put: {
         tags: ['Admin'],
-        summary: "Suspend or activate a user (admin only). Body: { action: 'suspend'|'activate' }",
+        summary: 'Suspend or activate a user (admin only)',
+        description:
+          'Update user status to active or inactive. Body: { status: "active" | "inactive" }',
         security: [{ FirebaseUidAuth: [] }],
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
         requestBody: {
@@ -1038,13 +1146,13 @@ Only works if role="admin" is sent in the request body.
         },
         responses: {
           200: {
-            description: 'User status updated',
+            description: 'User status updated successfully',
             content: {
               'application/json': {
                 schema: {
                   type: 'object',
                   properties: {
-                    message: { type: 'string' },
+                    message: { type: 'string', example: 'user status has changed successfully' },
                     user: { $ref: '#/components/schemas/UserShort' },
                   },
                 },
@@ -2852,8 +2960,12 @@ Valid program preferences:
                     format: 'binary',
                     description: 'Event banner image',
                   },
+                  price: {
+                    type: 'Number',
+                    description: 'price the student will pay',
+                  },
                 },
-                required: ['title', 'startDate', 'endDate', 'eventImage'],
+                required: ['title', 'startDate', 'endDate', 'eventImage', 'price'],
               },
             },
           },
@@ -2875,19 +2987,19 @@ Valid program preferences:
       get: {
         tags: ['Events'],
         security: [{ FirebaseUidAuth: [] }],
-        summary: 'Get all events with filters for active or inactive status',
+        summary: 'Get all events with optional active/inactive filter',
         description:
-          'Returns all events. Supports filtering with ?status=active / ?status=inactive or ?isActive=true / false.',
+          'Returns all events. Optionally filter by ?isActive=true or ?isActive=false. Each event includes a computedStatus field (active/inactive) based on current time relative to start/end dates.',
         parameters: [
           {
             name: 'isActive',
             in: 'query',
-            required:false,
+            required: false,
             schema: {
               type: 'string',
               enum: ['true', 'false'],
             },
-            description: 'Filter by stored isActive field',
+            description: 'Filter by admin-controlled isActive field',
           },
         ],
         responses: {
@@ -2901,13 +3013,6 @@ Valid program preferences:
                     status: { type: 'string', example: 'success' },
                     count: { type: 'number', example: 3 },
                     totalInDatabase: { type: 'number', example: 5 },
-                    filterApplied: {
-                      type: 'object',
-                      properties: {
-                        status: { type: 'string', example: 'active' },
-                        isActive: { type: 'string', example: 'true' },
-                      },
-                    },
                     data: {
                       type: 'array',
                       items: { $ref: '#/components/schemas/Event' },
@@ -2968,11 +3073,12 @@ Valid program preferences:
                   isActive: { type: 'boolean' },
                   startDate: { type: 'string', format: 'date-time' },
                   endDate: { type: 'string', format: 'date-time' },
+                  price: { type: 'Number' },
                   eventImage: {
                     type: 'string',
                     format: 'binary',
                     description: 'Optional new event image',
-                    required:false
+                    required: false,
                   },
                 },
               },
@@ -3019,6 +3125,140 @@ Valid program preferences:
             },
           },
           404: { description: 'Event not found' },
+        },
+      },
+    },
+    '/chat': {
+      post: {
+        tags: ['Chat'],
+        summary: 'Create or get a conversation between sender and receiver',
+        description:
+          'Creates a conversation if not exists, otherwise returns the existing one. Ensures the two users are assigned via any learning program.',
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  receiverId: {
+                    type: 'string',
+                    description: 'The other participant user ID (student or teacher)',
+                    example: '671fbc8c5bd432198ca91f73',
+                  },
+                },
+                required: ['receiverId'],
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Conversation created or returned successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ConversationResponse',
+                },
+              },
+            },
+          },
+          403: { description: 'Users are not assigned to each other' },
+          400: { description: 'Missing receiverId' },
+        },
+      },
+
+      get: {
+        tags: ['Chat'],
+        summary: 'Get all conversations for the logged-in user',
+        description: 'Returns all conversations where the user is a participant.',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: {
+            description: 'List of conversations returned',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/MyConversationsResponse',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/chat/messages': {
+      post: {
+        tags: ['Chat'],
+        summary: 'Send a message in a conversation',
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  conversationId: {
+                    type: 'string',
+                    example: '672b21f438bd23001d1e66aa',
+                  },
+                  text: {
+                    type: 'string',
+                    example: 'Assalamu alaikum, how are you?',
+                  },
+                  attachmentUrl: {
+                    type: 'string',
+                    example: 'https://cdn.myapp.com/chat/file.jpg',
+                  },
+                },
+                required: ['conversationId'],
+              },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: 'Message sent successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/MessageResponse',
+                },
+              },
+            },
+          },
+          403: { description: 'User is not part of this conversation' },
+        },
+      },
+    },
+    '/chat/messages/{conversationId}': {
+      get: {
+        tags: ['Chat'],
+        summary: 'Get all messages for a specific conversation',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'conversationId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+            example: '672b21f438bd23001d1e66aa',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Messages returned successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/GetMessagesResponse',
+                },
+              },
+            },
+          },
+          403: { description: 'User is not part of this conversation' },
         },
       },
     },

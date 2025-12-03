@@ -4,6 +4,7 @@ const TeacherRequest = require('../models/teacherRequestModel');
 const User = require('../models/userModel');
 const factory = require('../controllers/handlerFactory');
 const Session = require('../models/sessionModel');
+const mongoose = require('mongoose');
 
 const safeJsonParse = (data, fallback = {}) => {
   return typeof data === 'string' ? JSON.parse(data) : data || fallback;
@@ -91,56 +92,6 @@ exports.teacherSignUp = asyncHandler(async (req, res, next) => {
     request: teacherReq,
   });
 });
-
-// exports.teacherSignUp = asyncHandler(async (req, res, next) => {
-//   const decoded = req.firebase;
-// console.timeEnd('⚙️ Controller Execution');
-//   const existingReq = await TeacherRequest.exists({ firebaseUid: decoded.uid });
-//   if (existingReq) {
-//     return next(new ApiError('A teacher request for this user already exists.', 400));
-//   }
-
-//   // Parallel extraction
-//   const [teacherProfileData, certificates, profile_picture] = await Promise.all([
-//     Promise.resolve(safeJsonParse(req.body.teacherProfile)),
-//     Promise.resolve(extractCertificates(req.files)),
-//     Promise.resolve(extractProfileImg(req.files, req.body, decoded)),
-//   ]);
-
-//   teacherProfileData.certificates = [
-//     ...(teacherProfileData.certificates || []),
-//     ...(certificates || []),
-//   ];
-
-//   // Normalize arrays (avoid type errors)
-//   ['qiraat', 'teachingTracks', 'languages', 'ageGroups'].forEach((key) => {
-//     const val = teacherProfileData[key];
-//     if (!val) return;
-//     teacherProfileData[key] = Array.isArray(val) ? val : [val];
-//   });
-
-//   const teacherReq = await TeacherRequest.create({
-//     firebaseUid: decoded.uid,
-//     email: decoded.email || req.body.email,
-//     name: decoded.name || req.body.name || decoded.email?.split('@')[0],
-//     phone: req.body.phone || decoded.phone,
-//     gender: req.body.gender,
-//     birthDate: req.body.birthDate,
-//     nationality: req.body.nationality,
-//     countryOfResidence: req.body.countryOfResidence,
-//     profile_picture,
-//     teacherProfile: teacherProfileData,
-//     declarationAccuracy: req.body.declarationAccuracy === 'true',
-//     acceptTerms: req.body.acceptTerms === 'true',
-//     acceptPrivacy: req.body.acceptPrivacy === 'true',
-//     status: 'pending',
-//   });
-// console.timeEnd('🔥 Total time');
-//   return res.status(201).json({
-//     message: 'Teacher request created successfully, pending admin approval.',
-//     request: teacherReq,
-//   });
-// });
 
 // @desc    Student requests to become a teacher
 // @route   POST /api/v1/teacher-requests
@@ -266,7 +217,10 @@ exports.assignTeacherSpecilaization = asyncHandler(async (req, res, next) => {
 
   if (!teacher) return next(new ApiError('Teacher not found', 404));
 
-  teacher.teacherProfile.programPreference = programPreference;
+  teacher.teacherProfile.programPreference = programPreference.map(
+    (id) => new mongoose.Types.ObjectId(id)
+  );
+
   await teacher.save();
   res.status(200).json({
     status: 'success',
@@ -297,8 +251,8 @@ exports.getTeachersByProgramType = asyncHandler(async (req, res) => {
   const teachers = await User.find({
     role: 'teacher',
     status: 'active',
-    'teacherProfile.programPreference': programId,
-  });
+    'teacherProfile.programPreference': new mongoose.ObjectId(programId),
+  }).populate('teacherProfile.programPreference');
 
   res.status(200).json({
     status: 'success',

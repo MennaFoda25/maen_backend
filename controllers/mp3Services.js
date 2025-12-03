@@ -36,3 +36,5 @@ const Mp3 = await Mp3File.create({
 exports.deleteFile = factory.deleteOne(Mp3File);
 
 exports.getAllMp3 = factory.getAll(Mp3File)
+
+exports.getMp3ById = factory.getOne(Mp3File)

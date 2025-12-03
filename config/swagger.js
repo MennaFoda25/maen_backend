@@ -7,11 +7,11 @@ module.exports = {
   },
   servers: [
     {
-     // url: 'http://localhost:3000/api/v1',
+      //url: 'http://localhost:3000/api/v1',
        url: 'https://maen-backend.onrender.com/api/v1',
       // description: 'local dev server',
       description:
-      process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server',
+        process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server',
     },
   ],
   components: {
@@ -2521,63 +2521,78 @@ Automatically adds session.duration minutes to teacher.fulfilledMinutes.
         },
       },
     },
-
-    // '/teachers/by-program': {
-    //   get: {
-    //     tags: ['Teachers'],
-    //     summary: 'Get teachers specialized in a specific program',
-    //     description:
-    //       'Returns teachers who have selected this program in their programPreference array.',
-    //     security: [{ FirebaseUidAuth: [] }],
-    //     parameters: [
-    //       {
-    //         name: 'program',
-    //         in: 'query',
-    //         required: true,
-    //         schema: {
-    //           type: 'string',
-    //           enum: ['CorrectionProgram', 'MemorizationProgram', 'ChildMemorizationProgram'],
-    //         },
-    //         example: 'MemorizationProgram',
-    //       },
-    //     ],
-    //     responses: {
-    //       200: {
-    //         description: 'List of teachers specialized in this program',
-    //         content: {
-    //           'application/json': {
-    //             schema: {
-    //               type: 'object',
-    //               properties: {
-    //                 status: { type: 'string', example: 'success' },
-    //                 count: { type: 'number', example: 3 },
-    //                 data: {
-    //                   type: 'array',
-    //                   items: {
-    //                     type: 'object',
-    //                     properties: {
-    //                       _id: { type: 'string' },
-    //                       name: { type: 'string' },
-    //                       email: { type: 'string' },
-    //                       rating: { type: 'number' },
-    //                       ratingCount: { type: 'number' },
-    //                       teacherProfile: {
-    //                         type: 'object',
-    //                         properties: {
-    //                           programPreference: { type: 'array', items: { type: 'string' } },
-    //                         },
-    //                       },
-    //                     },
-    //                   },
-    //                 },
-    //               },
-    //             },
-    //           },
-    //         },
-    //       },
-    //     },
-    //   },
-    // },
+    '/programs/{id}': {
+      get: {
+        tags: ['Program Types'],
+        security: [{ FirebaseUidAuth: [] }],
+        summary: 'Get all active teachers specialized in a specific program type',
+        description:
+          'Returns all active teachers whose teacherProfile.programPreference includes the given ProgramType ID.',
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+            description: 'ProgramType ID to filter teachers by',
+            example: '691b9df3a54c5ba22b4be2fb',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'List of teachers specialized in the program type',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string', example: 'success' },
+                    count: { type: 'number', example: 3 },
+                    data: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          _id: { type: 'string' },
+                          name: { type: 'string' },
+                          email: { type: 'string' },
+                          role: { type: 'string', example: 'teacher' },
+                          teacherProfile: {
+                            type: 'object',
+                            properties: {
+                              programPreference: {
+                                type: 'array',
+                                description: 'Populated ProgramType objects',
+                                items: {
+                                  type: 'object',
+                                  properties: {
+                                    _id: { type: 'string' },
+                                    name: { type: 'string' },
+                                    key: { type: 'string' },
+                                  },
+                                },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          404: {
+            description: 'ProgramType or Teachers not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
     '/teachers/top': {
       get: {
         tags: ['Teachers'],
@@ -2825,24 +2840,17 @@ Admin access only.
     '/teachers/assign-program/{teacherId}': {
       patch: {
         tags: ['Teachers'],
-        summary: 'Assign or update a teacher’s program specialization (admin only)',
-        description: `
-Allows an admin to assign which program(s) a teacher is specialized in.
-
-Valid program preferences:
-- CorrectionProgram  
-- MemorizationProgram  
-- ChildMemorizationProgram  
-`,
         security: [{ FirebaseUidAuth: [] }],
+        summary: 'Assign or update teacher program specialization',
+        description:
+          'Assign a set of program types (ProgramType IDs) to a teacher. This updates the teacherProfile.programPreference array.',
         parameters: [
           {
             name: 'teacherId',
             in: 'path',
             required: true,
             schema: { type: 'string' },
-            description: 'ID of the teacher to update',
-            example: '68fe72e608a6a18c0ec78d56',
+            description: 'Teacher ID',
           },
         ],
         requestBody: {
@@ -2851,21 +2859,17 @@ Valid program preferences:
             'application/json': {
               schema: {
                 type: 'object',
+                required: ['programPreference'],
                 properties: {
                   programPreference: {
                     type: 'array',
-                    items: {
-                      type: 'string',
-                      enum: [
-                        '691b9db0a54c5ba22b4be2f3',
-                        '691b9de2a54c5ba22b4be2f7',
-                        '691b9df3a54c5ba22b4be2fb',
-                      ],
-                    },
-                    example: ['691b9df3a54c5ba22b4be2fb'],
+                    items: { type: 'string', example: '672b9db0a54c5ba22b4be2f3' },
+                    description: 'Array of ProgramType IDs',
                   },
                 },
-                required: ['programPreference'],
+              },
+              example: {
+                programPreference: ['672b9db0a54c5ba22b4be2f3', '672b9db0a54c5ba22b4be1aa'],
               },
             },
           },
@@ -2875,60 +2879,20 @@ Valid program preferences:
             description: 'Teacher specialization updated successfully',
             content: {
               'application/json': {
-                schema: {
-                  type: 'object',
-                  properties: {
-                    status: { type: 'string', example: 'success' },
-                    message: {
-                      type: 'string',
-                      example: 'Teacher program specialization updated',
-                    },
-                    teacher: {
-                      type: 'object',
-                      properties: {
-                        _id: { type: 'string', example: '68fe72e608a6a18c0ec78d56' },
-                        name: { type: 'string', example: 'Aisha' },
-                        email: { type: 'string', example: 'teacher@gmail.com' },
-                        role: { type: 'string', example: 'teacher' },
-                        teacherProfile: {
-                          type: 'object',
-                          properties: {
-                            programPreference: {
-                              type: 'array',
-                              items: { type: 'string' },
-                              example: ['CorrectionProgram', 'MemorizationProgram'],
-                            },
-                          },
-                        },
-                      },
-                    },
-                  },
-                },
+                schema: { $ref: '#/components/schemas/SuccessResponse' },
               },
             },
           },
           400: {
-            description: 'Validation error — programPreference must be an array',
+            description: 'Validation error',
             content: {
-              'application/json': {
-                schema: { $ref: '#/components/schemas/ErrorResponse' },
-              },
+              'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } },
             },
           },
           404: {
             description: 'Teacher not found',
             content: {
-              'application/json': {
-                schema: { $ref: '#/components/schemas/ErrorResponse' },
-              },
-            },
-          },
-          403: {
-            description: 'Forbidden — only admin can update specialization',
-            content: {
-              'application/json': {
-                schema: { $ref: '#/components/schemas/ErrorResponse' },
-              },
+              'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } },
             },
           },
         },
@@ -3128,52 +3092,73 @@ Valid program preferences:
         },
       },
     },
-    '/chat': {
+    '/chats': {
       post: {
         tags: ['Chat'],
-        summary: 'Create or get a conversation between sender and receiver',
+        security: [{ FirebaseUidAuth: [] }],
+        summary: 'Send a message to another user (teacher or student)',
         description:
-          'Creates a conversation if not exists, otherwise returns the existing one. Ensures the two users are assigned via any learning program.',
-        security: [{ bearerAuth: [] }],
+          'Creates or finds an existing conversation between two users and pushes a message to it. Supports text or attachment URL.',
         requestBody: {
           required: true,
           content: {
             'application/json': {
               schema: {
                 type: 'object',
+                required: ['receiverId'],
                 properties: {
                   receiverId: {
                     type: 'string',
-                    description: 'The other participant user ID (student or teacher)',
-                    example: '671fbc8c5bd432198ca91f73',
+                    description: 'User ID of message receiver',
+                    example: '691c486e6a788360931de1c7',
+                  },
+                  text: {
+                    type: 'string',
+                    description: 'Text message (optional)',
+                    example: 'السلام عليكم',
+                  },
+                  attachmentUrl: {
+                    type: 'string',
+                    description: 'Optional file URL (image / audio / pdf etc.)',
+                    example: 'https://res.cloudinary.com/.../file.mp3',
                   },
                 },
-                required: ['receiverId'],
+              },
+              example: {
+                receiverId: '691c486e6a788360931de1c7',
+                text: 'مرحبا كيف حالك؟',
               },
             },
           },
         },
         responses: {
           200: {
-            description: 'Conversation created or returned successfully',
+            description: 'Message sent successfully',
             content: {
               'application/json': {
-                schema: {
-                  $ref: '#/components/schemas/ConversationResponse',
-                },
+                schema: { $ref: '#/components/schemas/ChatConversationResponse' },
               },
             },
           },
-          403: { description: 'Users are not assigned to each other' },
-          400: { description: 'Missing receiverId' },
+          400: {
+            description: 'Validation error',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } },
+            },
+          },
+          404: {
+            description: 'Receiver not found',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } },
+            },
+          },
         },
       },
-
       get: {
         tags: ['Chat'],
         summary: 'Get all conversations for the logged-in user',
         description: 'Returns all conversations where the user is a participant.',
-        security: [{ bearerAuth: [] }],
+        security: [{ FirebaseUidAuth: [] }],
         responses: {
           200: {
             description: 'List of conversations returned',
@@ -3188,56 +3173,11 @@ Valid program preferences:
         },
       },
     },
-    '/chat/messages': {
-      post: {
-        tags: ['Chat'],
-        summary: 'Send a message in a conversation',
-        security: [{ bearerAuth: [] }],
-        requestBody: {
-          required: true,
-          content: {
-            'application/json': {
-              schema: {
-                type: 'object',
-                properties: {
-                  conversationId: {
-                    type: 'string',
-                    example: '672b21f438bd23001d1e66aa',
-                  },
-                  text: {
-                    type: 'string',
-                    example: 'Assalamu alaikum, how are you?',
-                  },
-                  attachmentUrl: {
-                    type: 'string',
-                    example: 'https://cdn.myapp.com/chat/file.jpg',
-                  },
-                },
-                required: ['conversationId'],
-              },
-            },
-          },
-        },
-        responses: {
-          201: {
-            description: 'Message sent successfully',
-            content: {
-              'application/json': {
-                schema: {
-                  $ref: '#/components/schemas/MessageResponse',
-                },
-              },
-            },
-          },
-          403: { description: 'User is not part of this conversation' },
-        },
-      },
-    },
-    '/chat/messages/{conversationId}': {
+    '/chats/messages/{conversationId}': {
       get: {
         tags: ['Chat'],
         summary: 'Get all messages for a specific conversation',
-        security: [{ bearerAuth: [] }],
+        security: [{ FirebaseUidAuth: [] }],
         parameters: [
           {
             name: 'conversationId',

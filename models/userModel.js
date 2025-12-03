@@ -12,18 +12,27 @@ const teacherSchema = new mongoose.Schema(
     bio: { type: String },
     certificates: [certificateSchema],
     specialties: [String],
-    programPreference: [
-      {
-        type: mongoose.Schema.ObjectId,
-        ref: 'ProgramType',
-      },
-    ],
+  programPreference: [
+  {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'ProgramType',
+    set: (value) => {
+      // If the value is already an array, convert each item to ObjectId
+      if (Array.isArray(value)) {
+        return value.map((v) => new mongoose.Types.ObjectId(v));
+      }
+      // single value case
+      return new mongoose.Types.ObjectId(value);
+    }
+  }
+],
+
     hourly_rate: { type: Number },
     availabilitySchedule: [
       {
         day: {
           type: String,
-          enum: ['saturday', 'sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+         // enum: ['saturday', 'sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
         },
         slots: [
           {
@@ -125,6 +134,16 @@ const userSchema = new mongoose.Schema(
 //   this.password = await bcrypt.hash(this.password, 12);
 //   next();
 // });
+
+function autoPopulateProgramPref(next) {
+  this.populate("teacherProfile.programPreference");
+  next();
+}
+
+userSchema.pre("find", autoPopulateProgramPref);
+userSchema.pre("findOne", autoPopulateProgramPref);
+userSchema.pre("findById", autoPopulateProgramPref);
+
 const User = mongoose.model('User', userSchema);
 // const TeacherSchema = mongoose.model('Teahcer',teacherSchema)
 module.exports = User;

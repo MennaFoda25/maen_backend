@@ -7,11 +7,11 @@ module.exports = {
   },
   servers: [
     {
-      url: 'http://localhost:3000/api/v1',
-      // url: 'https://maen-backend.onrender.com/api/v1',
+     // url: 'http://localhost:3000/api/v1',
+       url: 'https://maen-backend.onrender.com/api/v1',
       // description: 'local dev server',
-      //description:
-      //process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server',
+      description:
+      process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server',
     },
   ],
   components: {

@@ -7,11 +7,11 @@ module.exports = {
   },
   servers: [
     {
-      //url: 'http://localhost:3000/api/v1',
-      url: 'https://maen-backend.onrender.com/api/v1',
+      url: 'http://localhost:3000/api/v1',
+      // url: 'https://maen-backend.onrender.com/api/v1',
       // description: 'local dev server',
-      description:
-        process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server',
+      //description:
+      //process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server',
     },
   ],
   components: {
@@ -3259,6 +3259,361 @@ Valid program preferences:
             },
           },
           403: { description: 'User is not part of this conversation' },
+        },
+      },
+    },
+
+    '/upload': {
+      post: {
+        tags: ['MP3 Files'],
+        security: [{ FirebaseUidAuth: [] }],
+        summary: 'Upload a new MP3 file',
+        description: 'Admin uploads an MP3 file to Cloudinary. Supports mp3, wav, m4a.',
+        requestBody: {
+          required: true,
+          content: {
+            'multipart/form-data': {
+              schema: {
+                type: 'object',
+                properties: {
+                  name: {
+                    type: 'string',
+                    example: 'Surah Al-Fatiha',
+                  },
+                  description: {
+                    type: 'string',
+                    example: 'Beginner recitation',
+                  },
+                  file: {
+                    type: 'string',
+                    format: 'binary',
+                    description: 'MP3/WAV/M4A audio file',
+                  },
+                },
+                required: ['name', 'file'],
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'MP3 file uploaded successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  example: {
+                    status: 'success',
+                    message: 'file is added successfully',
+                    data: {
+                      _id: '64df092bda128001c89c2e50',
+                      name: 'Surah Al-Fatiha',
+                      description: 'Beginner recitation',
+                      fileUrl:
+                        'https://res.cloudinary.com/demo/raw/upload/v12345/maeen/quran_audio/file.mp3',
+                      createdAt: '2025-12-02T23:03:25.729Z',
+                      updatedAt: '2025-12-02T23:03:25.729Z',
+                    },
+                  },
+                },
+              },
+            },
+          },
+          400: {
+            description: 'Validation error',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+
+      get: {
+        tags: ['MP3 Files'],
+        security: [{ FirebaseUidAuth: [] }],
+        summary: 'Get all uploaded MP3 files',
+        responses: {
+          200: {
+            description: 'List of MP3 files',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  example: {
+                    status: 'success',
+                    results: 2,
+                    data: [
+                      {
+                        _id: '64df092bda128001c89c2e50',
+                        name: 'Surah Al-Fatiha',
+                        fileUrl: 'https://res.cloudinary.com/.../fatiha.mp3',
+                      },
+                      {
+                        _id: '64df092bda128001c89c2e70',
+                        name: 'Surah Al-Baqarah',
+                        fileUrl: 'https://res.cloudinary.com/.../baqarah.mp3',
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+
+    '/upload/{id}': {
+      delete: {
+        tags: ['MP3 Files'],
+        security: [{ FirebaseUidAuth: [] }],
+        summary: 'Delete an MP3 file (Admin only)',
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+            description: 'MP3 file ID to delete',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'MP3 file deleted',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  example: {
+                    status: 'success',
+                    message: 'File deleted successfully',
+                  },
+                },
+              },
+            },
+          },
+          404: {
+            description: 'File not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/pricing': {
+      post: {
+        tags: ['Pricing'],
+        summary: 'Calculate pricing for a plan',
+        security: [{ FirebaseUidAuth: [] }],
+        description: 'Calculates full pricing details with discount rules and optional promocode.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  teacherLevel: { type: 'string', example: 'مجاز/إجازة' },
+                  sessionsPerMonth: { type: 'number', example: 16 },
+                  months: { type: 'number', example: 6 },
+                  sessionMinutes: { type: 'number', example: 45 },
+                  isPeak: { type: 'boolean', example: true },
+                  promocode: { type: 'string', example: 'RAMADAN10' },
+                },
+                required: ['teacherLevel', 'sessionsPerMonth', 'months', 'sessionMinutes'],
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Successful pricing calculation',
+            content: {
+              'application/json': {
+                schema: {
+                  example: {
+                    status: 'success',
+                    pricing: {
+                      teacherLevel: 'مجاز/إجازة',
+                      sessionsPerMonth: 16,
+                      months: 6,
+                      sessionMinutes: 45,
+                      isPeak: true,
+                    },
+                    priceBreakdown: {
+                      basePricePerMinute: 1.5,
+                      pricePerSession: 67.5,
+                      pricePerMinute: 1.2,
+                      pricePerHour: 72,
+                      monthlyPrice: 1080,
+                    },
+                    totalPrice: {
+                      withoutPromocode: 5400,
+                      withPromocode: 4860,
+                    },
+                    promocode: {
+                      valid: true,
+                      code: 'RAMADAN10',
+                      discountType: 'percentage',
+                      discountValue: 10,
+                      discountAmount: 540,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/promocode': {
+      post: {
+        tags: ['Promocode'],
+        security: [{ FirebaseUidAuth: [] }],
+        summary: 'Create a new promocode',
+        description: 'Admin only — creates a promocode with usage limits.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                example: {
+                  code: 'RAMADAN10',
+                  discountType: 'percentage',
+                  discountValue: 10,
+                  validFrom: '2025-01-01',
+                  validUntil: '2025-02-01',
+                  isActive: true,
+                  maxUsagePerUser: 5,
+                  globalMaxUsage: 1000,
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Promocode created successfully',
+          },
+        },
+      },
+
+      get: {
+        tags: ['Promocode'],
+        security: [{ FirebaseUidAuth: [] }],
+        summary: 'Get all promocodes (Admin only)',
+        responses: {
+          200: {
+            description: 'List of promocodes',
+            content: {
+              'application/json': {
+                schema: {
+                  example: {
+                    status: 'success',
+                    results: 2,
+                    data: [
+                      {
+                        code: 'RAMADAN10',
+                        discountType: 'percentage',
+                        discountValue: 10,
+                        totalUsage: 50,
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/promocode/{id}': {
+      patch: {
+        tags: ['Promocode'],
+        security: [{ FirebaseUidAuth: [] }],
+        summary: 'Update a promocode',
+        parameters: [
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string' },
+          },
+        ],
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                example: {
+                  discountValue: 15,
+                  isActive: false,
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Promocode updated',
+          },
+        },
+      },
+
+      delete: {
+        tags: ['Promocode'],
+        security: [{ FirebaseUidAuth: [] }],
+        summary: 'Delete a promocode',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: {
+          200: {
+            description: 'Promocode deleted',
+          },
+        },
+      },
+    },
+    '/promocode/apply': {
+      post: {
+        tags: ['Promocode'],
+        security: [{ FirebaseUidAuth: [] }],
+        summary: 'Apply a promocode to calculate discount',
+        description: 'Does NOT store usage. Only returns calculated discounted price.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                example: {
+                  code: 'RAMADAN10',
+                  originalPrice: 5400,
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Promocode applied',
+            content: {
+              'application/json': {
+                schema: {
+                  example: {
+                    status: 'success',
+                    promocode: 'RAMADAN10',
+                    originalPrice: 5400,
+                    discountAmount: 540,
+                    finalPrice: 4860,
+                    discountType: 'percentage',
+                  },
+                },
+              },
+            },
+          },
         },
       },
     },

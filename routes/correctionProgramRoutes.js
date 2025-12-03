@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const { firebaseAuth } = require('../middlewares/firebaseAuth');
 const { allowedTo } = require('../controllers/authServices');
-const { uploadAndAttachAudio } = require('../middlewares/uploadAudioMiddleware');
 const {
   createCorrectionProgram,
   getMyCorrectionProgram,
@@ -17,7 +16,6 @@ router
   .route('/')
   .post(
     allowedTo('student'),
-    uploadAndAttachAudio('audioReferences'),
     createCorrectionProgramValidator,
     createCorrectionProgram
   )

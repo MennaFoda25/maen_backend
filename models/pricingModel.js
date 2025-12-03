@@ -2,33 +2,28 @@ const mongoose = require('mongoose');
 
 const pricingModel = new mongoose.Schema(
   {
-    global: {
-      basePrice30: { type: Number },
-      defaultSessionMin: { type: Number },
-      minPricePerMin: Number,
-      peakFeeMulti: Number,
-    },
+    basePrice : {type:Number , default:30},
+    minPricePerMinute: {type:Number, default:0.6},
+    peakFeeMultiplier:{ type:Number, default:1},
 
-    level: String,
-    factor: Number,
-
-    sessionDisctount: [
+    teacherLevels: [
       {
-        sessionsPerMonth: Number,
-        discount: Number,
-      },
+        name:String,
+        factor:Number
+      }
     ],
-    durationDiscounts: [
-      {
-        months: Number,
-        discount: Number,
-      },
-    ],
+    sessionsDiscount:[{
+       sessionsPerMonth: Number,
+    discount: Number
+  }],
 
-    isActive: Boolean,
-  },
-  { timestamps: true }
-);
+  durationDiscounts:[
+    {
+      months:Number,
+      discount:Number
+    }
+  ]
+});
 
 const Pricing = mongoose.model('Pricing', pricingModel);
 module.exports = Pricing;

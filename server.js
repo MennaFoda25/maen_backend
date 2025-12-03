@@ -25,6 +25,9 @@ const programRoutes = require('./routes/programRoutes');
 const eventRoutes = require('./routes/eventRoutes');
 const planRoutes = require('./routes/pricingPlanRoutes')
 const chatRoutes = require('./routes/chatRoutes')
+const promocodeRoutes = require('./routes/promocodeRoutes')
+const pricingRoutes = require('./routes/pricingPlanRoutes')
+const mp3Routes = require('./routes/mp3Routes')
 const app = express();
 
 // Middleware
@@ -54,6 +57,9 @@ app.use('/api/v1/programs', programRoutes);
 app.use('/api/v1/events', eventRoutes);
 app.use('/api/v1/plans',planRoutes)
 app.use('/api/v1/chats', chatRoutes)
+app.use('/api/v1/pricing',pricingRoutes)
+app.use('/api/v1/promocode',promocodeRoutes)
+app.use('/api/v1/upload',mp3Routes)
 // Serve Swagger UI (automatic with CSS/JS)
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 console.log('Swagger UI available at /api-docs');

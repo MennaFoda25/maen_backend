@@ -4,6 +4,7 @@ const ChildProgram = require('../models/childMemoProgramModel');
 const User = require('../models/userModel');
 const Session = require('../models/sessionModel');
 const factory = require('./handlerFactory');
+const { markPromocodeUsed } = require("../controllers/programServices");
 const { createTrialSession } = require('./sessionServices');
 
 // Helper to safely convert strings or arrays into array of strings

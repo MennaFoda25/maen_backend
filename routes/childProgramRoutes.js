@@ -14,7 +14,7 @@ router.use(firebaseAuth);
 
 router
   .route('/')
-  .post(allowedTo('student'),createChildMemProgramValidator, createChildMemProgram)
+  .post(allowedTo('student'), createChildMemProgram)
   .get(allowedTo('student', 'teacher'), getMyChildPrograms);
 router.route('/all').get(allowedTo('admin'),getAllChildPrograms)
 module.exports = router

@@ -16,7 +16,6 @@ router
   .route('/')
   .post(
     allowedTo('student'),
-    createCorrectionProgramValidator,
     createCorrectionProgram
   )
   .get(allowedTo('student', 'teacher'), getMyCorrectionProgram);

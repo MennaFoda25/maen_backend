@@ -1,5 +1,6 @@
 // models/MemorizationProgram.js
 const mongoose = require('mongoose');
+const crypto = require('crypto');
 
 const memorizationProgramSchema = new mongoose.Schema(
   {

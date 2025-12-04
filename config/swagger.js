@@ -8,7 +8,7 @@ module.exports = {
   servers: [
     {
       //url: 'http://localhost:3000/api/v1',
-       url: 'https://maen-backend.onrender.com/api/v1',
+      url: 'https://maen-backend.onrender.com/api/v1',
       // description: 'local dev server',
       description:
         process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server',
@@ -227,11 +227,39 @@ module.exports = {
               'general_mistakes or hidden_mistakes or ijazah_preparation or performance_development',
           },
           currentLevel: { type: 'String', example: 'beginner or intermediate or advanced' },
-          sessionsPerWeek: { type: 'Number', example: '1 , 2,3,4,5' },
+          weeklySessions: { type: 'Number', example: '1 , 2,3,4,5' },
           sessionDuration: { type: 'Number', example: '15,30,45,60' },
-          preferredTimes: { type: 'array', example: '6-9_am' },
-          Days: { type: 'array', example: 'sunday , monday' },
+          preferredTimes: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                day: {
+                  type: 'string',
+                  enum: [
+                    'sunday',
+                    'monday',
+                    'tuesday',
+                    'wednesday',
+                    'thursday',
+                    'friday',
+                    'saturday',
+                  ],
+                  example: 'sunday',
+                },
+                start: {
+                  type: 'string',
+                  example: '17:00',
+                },
+              },
+            },
+            example: [
+              { day: 'sunday', start: '17:00' },
+              { day: 'tuesday', start: '17:00' },
+            ],
+          },
           planName: { type: 'String' },
+          packageDuration: { type: 'Number' },
           fromSurah: { type: 'String' },
           toSurah: { type: 'String' },
           audioReferences: { type: 'String' },
@@ -273,17 +301,36 @@ module.exports = {
 
           weeklySessions: { type: 'number', example: 3 },
           sessionDuration: { type: 'number', example: 30 },
+          packageDuration: { type: 'number' },
 
           preferredTimes: {
             type: 'array',
-            items: { type: 'string' },
-            example: ['6-9_am', '2-5_pm'],
-          },
-
-          days: {
-            type: 'array',
-            items: { type: 'string' },
-            example: ['sunday', 'tuesday', 'thursday'],
+            items: {
+              type: 'object',
+              properties: {
+                day: {
+                  type: 'string',
+                  enum: [
+                    'sunday',
+                    'monday',
+                    'tuesday',
+                    'wednesday',
+                    'thursday',
+                    'friday',
+                    'saturday',
+                  ],
+                  example: 'sunday',
+                },
+                start: {
+                  type: 'string',
+                  example: '17:00',
+                },
+              },
+            },
+            example: [
+              { day: 'sunday', start: '17:00' },
+              { day: 'tuesday', start: '17:00' },
+            ],
           },
 
           memorizationRange: {
@@ -335,16 +382,16 @@ module.exports = {
           teacher: { type: 'string', example: '68fe72e608a6a18c0ec78d56' },
 
           childName: { type: 'string', example: 'Omar Mohamed' },
-          gender: { type: 'string', enum: ['male', 'female'], example: 'male' },
-          age: { type: 'number', example: 7 },
+          childGender: { type: 'string', enum: ['male', 'female'], example: 'male' },
+          childAge: { type: 'number', example: 7 },
 
           hasStudiedBefore: { type: 'boolean', example: true },
           memorizedParts: { type: 'string', example: 'Juz Amma, Al-Fatihah' },
 
           readingLevel: {
             type: 'string',
-            enum: ['no_reading', 'letter_spelling', 'fluent'],
-            example: 'letter_spelling',
+            enum: ['no_reading', 'phonetic', 'fluent'],
+            example: 'fluent',
           },
 
           mainGoal: {
@@ -355,29 +402,42 @@ module.exports = {
 
           weeklySessions: { type: 'number', example: 3 },
           sessionDuration: { type: 'number', example: 30 },
+          packageDuration: { type: 'number' },
 
           preferredTimes: {
             type: 'array',
-            items: { type: 'string' },
-            example: ['morning', 'evening'],
-          },
-
-          days: {
-            type: 'array',
-            items: { type: 'string' },
-            example: ['sunday', 'wednesday'],
+            items: {
+              type: 'object',
+              properties: {
+                day: {
+                  type: 'string',
+                  enum: [
+                    'sunday',
+                    'monday',
+                    'tuesday',
+                    'wednesday',
+                    'thursday',
+                    'friday',
+                    'saturday',
+                  ],
+                  example: 'sunday',
+                },
+                start: {
+                  type: 'string',
+                  example: '17:00',
+                },
+              },
+            },
+            example: [
+              { day: 'sunday', start: '17:00' },
+              { day: 'tuesday', start: '17:00' },
+            ],
           },
 
           teacherGender: {
             type: 'string',
             enum: ['male', 'female'],
             example: 'female',
-          },
-
-          timeSlots: {
-            type: 'array',
-            items: { type: 'string' },
-            example: ['9-11', '4-7'],
           },
 
           notes: { type: 'string', example: 'Shy, struggles with ص' },
@@ -1226,19 +1286,42 @@ Only works if role="admin" is sent in the request body.
                     example: 'intermediate',
                   },
 
-                  sessionsPerWeek: { type: 'number', example: 2 },
+                  weeklySessions: { type: 'number', example: 2 },
                   sessionDuration: { type: 'number', example: 30 },
+                  packageDuration: { type: 'number', example: 1 },
 
                   preferredTimes: {
                     type: 'array',
-                    items: { type: 'string' },
-                    example: ['6-9_am', '10-1_pm'],
+                    description: 'List of preferred time slots',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        day: {
+                          type: 'string',
+                          enum: [
+                            'sunday',
+                            'monday',
+                            'tuesday',
+                            'wednesday',
+                            'thursday',
+                            'friday',
+                            'saturday',
+                          ],
+                          example: 'sunday',
+                        },
+                        start: { type: 'string', example: '17:00' },
+                      },
+                    },
+                    example: [
+                      { day: 'sunday', start: '17:00' },
+                      { day: 'tuesday', start: '18:00' },
+                    ],
                   },
-                  Days: {
-                    type: 'array',
-                    items: { type: 'string' },
-                    example: ['sunday', 'tuesday'],
-                  },
+                  // Days: {
+                  //   type: 'array',
+                  //   items: { type: 'string' },
+                  //   example: ['sunday', 'tuesday'],
+                  // },
 
                   fromSurah: { type: 'string', example: 'Al-Fatihah' },
                   toSurah: { type: 'string', example: 'Al-Baqarah' },
@@ -1246,7 +1329,7 @@ Only works if role="admin" is sent in the request body.
                   pagesPerSession: { type: 'number', example: 1 },
                   totalPages: { type: 'number', example: 20 },
 
-                  assignedTeacher: { type: 'string', example: '68fe72e608a6a18c0ec78d56' },
+                  teacher: { type: 'string', example: '68fdeb64c53906d3a283b8bf' },
                   trialSession: { type: 'boolean', example: true },
                 },
                 required: ['goal', 'planName', 'fromSurah', 'toSurah'],
@@ -1389,8 +1472,8 @@ Requires Firebase authentication.
                 type: 'object',
                 properties: {
                   childName: { type: 'string', example: 'Omar Mohamed' },
-                  gender: { type: 'string', enum: ['male', 'female'], example: 'male' },
-                  age: { type: 'number', example: 7 },
+                  childGender: { type: 'string', enum: ['male', 'female'], example: 'male' },
+                  childAge: { type: 'number', example: 7 },
 
                   hasStudiedBefore: { type: 'boolean', example: true },
                   memorizedParts: { type: 'string', example: 'Juz Amma, Al-Fatihah' },
@@ -1409,28 +1492,39 @@ Requires Firebase authentication.
 
                   weeklySessions: { type: 'number', example: 3 },
                   sessionDuration: { type: 'number', example: 30 },
+                  packageDuration: { type: 'number', example: 1 },
                   preferredTimes: {
                     type: 'array',
-                    items: { type: 'string' },
-                    example: ['morning', 'evening'],
+                    description: 'List of preferred time slots',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        day: {
+                          type: 'string',
+                          enum: [
+                            'sunday',
+                            'monday',
+                            'tuesday',
+                            'wednesday',
+                            'thursday',
+                            'friday',
+                            'saturday',
+                          ],
+                          example: 'sunday',
+                        },
+                        start: { type: 'string', example: '17:00' },
+                      },
+                    },
+                    example: [
+                      { day: 'sunday', start: '17:00' },
+                      { day: 'tuesday', start: '18:00' },
+                    ],
                   },
-                  days: {
-                    type: 'array',
-                    items: { type: 'string' },
-                    example: ['sunday', 'wednesday'],
-                  },
-
                   teacherGender: {
                     type: 'string',
                     enum: ['male', 'female'],
                     example: 'female',
                   },
-                  timeSlots: {
-                    type: 'array',
-                    items: { type: 'string' },
-                    example: ['9-11', '4-7'],
-                  },
-
                   notes: {
                     type: 'string',
                     example: 'Child is shy and struggles with pronouncing letter ص',
@@ -1619,18 +1713,35 @@ Requires Firebase authentication.
 
                   weeklySessions: { type: 'number', example: 3 },
                   sessionDuration: { type: 'number', example: 30 },
+                  packageDuration: { type: 'number', example: 1 },
 
                   preferredTimes: {
                     type: 'array',
-                    items: { type: 'string' },
-                    example: ['6-9_am', '2-5_pm'],
+                    description: 'List of preferred time slots',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        day: {
+                          type: 'string',
+                          enum: [
+                            'sunday',
+                            'monday',
+                            'tuesday',
+                            'wednesday',
+                            'thursday',
+                            'friday',
+                            'saturday',
+                          ],
+                          example: 'sunday',
+                        },
+                        start: { type: 'string', example: '17:00' },
+                      },
+                    },
+                    example: [
+                      { day: 'sunday', start: '17:00' },
+                      { day: 'tuesday', start: '18:00' },
+                    ],
                   },
-                  days: {
-                    type: 'array',
-                    items: { type: 'string' },
-                    example: ['sunday', 'tuesday', 'thursday'],
-                  },
-
                   memorizationRange: {
                     type: 'object',
                     properties: {

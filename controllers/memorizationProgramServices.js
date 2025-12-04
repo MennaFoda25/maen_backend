@@ -8,7 +8,17 @@ const factory = require('./handlerFactory');
 
 const toArray = (value) => {
   if (!value) return [];
-  if (Array.isArray(value)) return value.map((v) => v.trim());
+  if (Array.isArray(value)) {
+    return value.map((v) => {
+      if (typeof v === 'string') return v.trim();
+      return v; // keep objects unchanged
+    });
+  }
+
+  // If value is an object, wrap in array
+  if (typeof value === 'object') return [value];
+
+  // Otherwise treat as string "a,b,c"
   return String(value)
     .split(',')
     .map((v) => v.trim())

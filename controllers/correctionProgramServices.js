@@ -9,7 +9,16 @@ const factory = require('../controllers/handlerFactory');
 // Helper to safely convert strings or arrays into array of strings
 const toArray = (value) => {
   if (!value) return [];
-  if (Array.isArray(value)) return value.map((v) => v.trim());
+  if (Array.isArray(value)) {return value.map((v) =>{
+      if (typeof v === "string") return v.trim();
+      return v; // keep objects unchanged
+    });
+  }
+
+  // If value is an object, wrap in array
+  if (typeof value === "object") return [value];
+
+  // Otherwise treat as string "a,b,c"
   return String(value)
     .split(',')
     .map((v) => v.trim())
@@ -34,7 +43,7 @@ exports.createCorrectionProgram = asyncHandler(async (req, res, next) => {
     weeklySessions: req.body.weeklySessions,
     sessionDuration: req.body.sessionDuration,
     preferredTimes: toArray(req.body.preferredTimes),
-    days: toArray(req.body.days),
+   // days: toArray(req.body.days),
     teacher: req.body.teacher,
     planName: req.body.planName,
     fromSurah: req.body.fromSurah,

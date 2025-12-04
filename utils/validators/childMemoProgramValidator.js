@@ -33,24 +33,24 @@ exports.createChildMemProgramValidator = [
       return true;
     }),
 
-  check('preferredTimes')
-    .optional()
-    .isArray()
-    .custom((arr) => {
-      const allowed = ['morning_9_11', 'noon_12_3', 'afternoon_4_7', 'evening_8_10'];
-      const invalid = arr.filter((t) => !allowed.includes(t));
-      if (invalid.length) throw new Error('Invalid preferredTimes: ' + invalid.join(', '));
-      return true;
-    }),
+  // check('preferredTimes')
+  //   .optional()
+  //   .isArray()
+  //   .custom((arr) => {
+  //     const allowed = ['morning_9_11', 'noon_12_3', 'afternoon_4_7', 'evening_8_10'];
+  //     const invalid = arr.filter((t) => !allowed.includes(t));
+  //     if (invalid.length) throw new Error('Invalid preferredTimes: ' + invalid.join(', '));
+  //     return true;
+  //   }),
 
   check('planName')
     .notEmpty()
     .withMessage('Plan name is required')
-    .custom((val) =>
-      ChildMemorizationProgram.findOne({ planName: val }).then((program) => {
-        if (program) return Promise.reject(new Error('Program name already exists'));
-      })
-    ),
+    // .custom((val) =>
+    //   ChildMemorizationProgram.findOne({ planName: val }).then((program) => {
+    //     if (program) return Promise.reject(new Error('Program name already exists'));
+    //   })
+    //),
   ,
   check('memorizationDirection').optional().isIn(['fatihah_to_nas', 'nas_to_fatihah']),
   check('facesLabel').optional().isIn(['quarter', 'half', 'one', 'custom']),

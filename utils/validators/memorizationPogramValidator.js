@@ -6,12 +6,12 @@ const MemorizationProgram = require('../../models/memorizationProgramModel');
 exports.createMemoProgramValidator = [
   check('planName')
     .notEmpty()
-    .withMessage('Program name is required')
-    .custom((val) =>
-      MemorizationProgram.findOne({ planName: val }).then((program) => {
-        if (program) return Promise.reject(new Error('Program name already exists'));
-      })
-    ),
+    .withMessage('Program name is required'),
+    // .custom((val) =>
+    //   MemorizationProgram.findOne({ planName: val }).then((program) => {
+    //     if (program) return Promise.reject(new Error('Program name already exists'));
+    //   })
+    // ),
   check('teacher').isMongoId().withMessage('Invalid teacher Id'),
 
   check('programType')
@@ -36,11 +36,12 @@ exports.createMemoProgramValidator = [
     .optional()
     .isArray()
     .withMessage('Preferred times must be an array')
-    .custom((arr) => {
-      const allowed = ['6-9_am', '10-1_pm', '2-5_pm', '6-9_pm', '10-1_am'];
-      const invalid = arr.filter((t) => !allowed.includes(t));
-      if (invalid.length) throw new Error(`Invalid preferred time(s): ${invalid.join(', ')}`);
-      return true;
-    }),
+    // .custom((arr) => {
+    //   const allowed = ['6-9_am', '10-1_pm', '2-5_pm', '6-9_pm', '10-1_am'];
+    //   const invalid = arr.filter((t) => !allowed.includes(t));
+    //   if (invalid.length) throw new Error(`Invalid preferred time(s): ${invalid.join(', ')}`);
+    //   return true;
+    // }),
+    ,
   validatorMiddleware,
 ];

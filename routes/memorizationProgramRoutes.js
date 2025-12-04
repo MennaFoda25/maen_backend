@@ -11,7 +11,7 @@ const {
 const router = express.Router();
 
 router.use(firebaseAuth);
-router.post('/', allowedTo('student'), createMemoProgramValidator, createMemorizationProgram);
+router.post('/', allowedTo('student'), createMemorizationProgram);
 router.get('/', allowedTo('teacher', 'student'), getMyMemoPrograms);
 router.get('/all', allowedTo('admin'),getAllMemorizationPrograms)
 module.exports = router;

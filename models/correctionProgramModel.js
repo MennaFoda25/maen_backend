@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const crypto = require('crypto');
 
 const correctionProgramSchema = new mongoose.Schema(
   {
@@ -47,16 +48,15 @@ const correctionProgramSchema = new mongoose.Schema(
       enum: [15, 30, 45, 60],
       required: [true, 'Session duration is required'],
     },
-    preferredTimes: {
-      type: [String],
-      // enum: ['6-9_am', '10-1_pm', '2-5_pm', '6-9_pm', '10-1_am'],
-    }, // e.g. ['evening', 'afternoon']
-    days: {
-      type: [String],
-      required: true,
-      enum: ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
-      validate: [(arr) => arr.length <= 5, 'Cannot select more than 5 days'],
-    },
+     preferredTimes: [
+      {
+        day: {
+          type: String,
+          enum: ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
+        },
+        start: String, // e.g. "18:00"
+      },
+    ],
     planName: {
       type: String,
       required: true,

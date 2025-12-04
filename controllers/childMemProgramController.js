@@ -10,7 +10,16 @@ const { createTrialSession } = require('./sessionServices');
 // Helper to safely convert strings or arrays into array of strings
 const toArray = (value) => {
   if (!value) return [];
-  if (Array.isArray(value)) return value.map((v) => v.trim());
+  if (Array.isArray(value)) {return value.map((v) =>{
+      if (typeof v === "string") return v.trim();
+      return v; // keep objects unchanged
+    });
+  }
+
+  // If value is an object, wrap in array
+  if (typeof value === "object") return [value];
+
+  // Otherwise treat as string "a,b,c"
   return String(value)
     .split(',')
     .map((v) => v.trim())
@@ -107,7 +116,7 @@ exports.getMyChildPrograms = asyncHandler(async (req, res, next) => {
     populateField = 'parent';
   } else if (role === 'student') {
     filter = { parent: _id };
-    populateField = 'assignedTeacher';
+    populateField = 'teacher';
   } else {
     return next(new ApiError('Only teachers and students can access their programs', 403));
   }

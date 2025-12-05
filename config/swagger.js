@@ -7,8 +7,8 @@ module.exports = {
   },
   servers: [
     {
-    //  url: 'http://localhost:3000/api/v1',
-      url: 'https://maen-backend.onrender.com/api/v1',
+      url: 'http://localhost:3000/api/v1',
+      //url: 'https://maen-backend.onrender.com/api/v1',
       // description: 'local dev server',
       description:
         process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server',
@@ -150,7 +150,7 @@ module.exports = {
           updatedAt: { type: 'string', format: 'date-time' },
         },
       },
-      ConversationResponse: {
+      ChatConversationResponse: {
         type: 'object',
         properties: {
           status: { type: 'string', example: 'success' },
@@ -169,16 +169,75 @@ module.exports = {
                   },
                 },
               },
+              lastMessage: { type: 'string', example: 'السلام عليكم' },
+              lastMessageAt: { type: 'string', format: 'date-time' },
               messages: {
                 type: 'array',
-                items: { $ref: '#/components/schemas/Message' },
+                items: {
+                  type: 'object',
+                  properties: {
+                    sender: { type: 'string' },
+                    text: { type: 'string' },
+                    createdAt: { type: 'string', format: 'date-time' },
+                  },
+                },
               },
-              lastMessage: { type: 'string' },
-              lastMessageAt: { type: 'string', format: 'date-time' },
             },
           },
         },
       },
+      MyConversationsResponse: {
+        type: 'object',
+        properties: {
+          status: { type: 'string', example: 'success' },
+          count: { type: 'number' },
+          conversations: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                _id: { type: 'string' },
+                participants: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      _id: { type: 'string' },
+                      name: { type: 'string' },
+                      profile_picture: { type: 'string' },
+                    },
+                  },
+                },
+                lastMessage: { type: 'string' },
+                lastMessageAt: { type: 'string', format: 'date-time' },
+              },
+            },
+          },
+        },
+      },
+      GetMessagesResponse: {
+        type: 'object',
+        properties: {
+          status: { type: 'string', example: 'success' },
+          conversationId: { type: 'string' },
+          participants: {
+            type: 'array',
+            items: { type: 'string' },
+          },
+          messages: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                sender: { type: 'string' },
+                text: { type: 'string' },
+                createdAt: { type: 'string', format: 'date-time' },
+              },
+            },
+          },
+        },
+      },
+
       Message: {
         type: 'object',
         properties: {
@@ -213,7 +272,7 @@ module.exports = {
           count: { type: 'number' },
           conversations: {
             type: 'array',
-            items: { $ref: '#/components/schemas/ConversationResponse' },
+            items: { $ref: '#/components/schemas/ChatConversationResponse' },
           },
         },
       },
@@ -1480,8 +1539,8 @@ Requires Firebase authentication.
 
                   readingLevel: {
                     type: 'string',
-                    enum: ['no_reading', 'letter_spelling', 'fluent'],
-                    example: 'letter_spelling',
+                    enum: ['no_reading', 'phonetic', 'fluent'],
+                    example: 'phonetic',
                   },
 
                   mainGoal: {
@@ -3228,11 +3287,6 @@ Admin access only.
                     description: 'Text message (optional)',
                     example: 'السلام عليكم',
                   },
-                  attachmentUrl: {
-                    type: 'string',
-                    description: 'Optional file URL (image / audio / pdf etc.)',
-                    example: 'https://res.cloudinary.com/.../file.mp3',
-                  },
                 },
               },
               example: {
@@ -3284,18 +3338,18 @@ Admin access only.
         },
       },
     },
-    '/chats/messages/{conversationId}': {
+    '/chats/messages/{receiverId}': {
       get: {
         tags: ['Chat'],
         summary: 'Get all messages for a specific conversation',
         security: [{ FirebaseUidAuth: [] }],
         parameters: [
           {
-            name: 'conversationId',
+            name: 'receiverId',
             in: 'path',
             required: true,
             schema: { type: 'string' },
-            example: '672b21f438bd23001d1e66aa',
+            example: '690f92ee48f44586274b77cf',
           },
         ],
         responses: {

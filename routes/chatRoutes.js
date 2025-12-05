@@ -11,7 +11,7 @@ router.route('/')
 .get(allowedTo('teacher', 'student'),getMyConversations)
 
 //router.route('/messages').post(sendMessage)
-router.get('/messages/:conversationId', getMessages)
+router.get('/messages/:receiverId', getMessages)
 
 module.exports = router
 

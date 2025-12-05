@@ -1,5 +1,5 @@
 const Conversation = require('../models/conversationModel');
-const Message = require('../models/messageModel');
+//const Message = require('../models/messageModel');
 const User = require('../models/userModel'); // adjust path if needed
 const Session = require('../models/sessionModel'); // optional checks
 const asyncHandler = require('express-async-handler');
@@ -122,7 +122,7 @@ exports.chatWithUser = asyncHandler(async (req, res, next) => {
   const { receiverId, text, attachmentUrl } = req.body;
 
   if (!receiverId) {
-    return next(new ApiError("receiverId is required", 400));
+    return next(new ApiError('receiverId is required', 400));
   }
 
   // if (!text && !attachmentUrl) {
@@ -130,8 +130,8 @@ exports.chatWithUser = asyncHandler(async (req, res, next) => {
   // }
 
   // Validate receiver exists
-  const receiver = await User.findById(receiverId).select("name role");
-  if (!receiver) return next(new ApiError("Receiver not found", 404));
+  const receiver = await User.findById(receiverId).select('name role');
+  if (!receiver) return next(new ApiError('Receiver not found', 404));
 
   // 1️⃣ Find or create conversation
   let conversation = await Conversation.findOne({
@@ -143,7 +143,7 @@ exports.chatWithUser = asyncHandler(async (req, res, next) => {
     conversation = await Conversation.create({
       participants,
       messages: [],
-      lastMessage: "",
+      lastMessage: '',
       lastMessageAt: new Date(),
     });
   }
@@ -151,7 +151,7 @@ exports.chatWithUser = asyncHandler(async (req, res, next) => {
   // 2️⃣ Push message
   const message = {
     sender: senderId,
-    text: text || "",
+    text: text || '',
     attachmentUrl: attachmentUrl || null,
     createdAt: new Date(),
   };
@@ -159,50 +159,94 @@ exports.chatWithUser = asyncHandler(async (req, res, next) => {
   conversation.messages.push(message);
 
   // 3️⃣ Update conversation preview
-  conversation.lastMessage = text || (attachmentUrl ? "Attachment" : "");
+  conversation.lastMessage = text || (attachmentUrl ? 'Attachment' : '');
   conversation.lastMessageAt = new Date();
 
   await conversation.save();
 
   // 4️⃣ Populate participants
-  await conversation.populate("participants", "name profile_picture");
+  await conversation.populate('participants', 'name profile_picture');
 
   res.status(200).json({
-    status: "success",
+    status: 'success',
     conversation,
   });
 });
-
 
 /**
  * GET /chat/messages/:conversationId?page=1&limit=30
  * Returns messages in ascending order. Only participants can read.
  */
 
+// exports.getMessages = asyncHandler(async (req, res, next) => {
+//   const receiverId = req.params.receiverId;
+//   const receiver = await User.findById(receiverId).select("name role");
+//   if (!receiver) return next(new ApiError("Receiver not found", 404));
+
+//   // 1️⃣ Find or create conversation
+//   // let conversation = await Conversation.findOne({
+//   //   participants: { $all: [ receiverId] },
+//   // });
+
+//   const conversation = await Conversation.findById(conversationId).populate(
+//     'messages.sender',
+//     'name profile_picture'
+//   );
+//   if (!conversation) return next(new ApiError('Conversation not found', 404));
+
+//   //   const userId = req.user._id.toString();
+//   //   const isParticipant = conversation.participants.some((p) => p.toString() === userId);
+//   //   if (!isParticipant) return next(new ApiError('Not authorized to view messages', 403));
+//   //   const total = await Message.countDocuments({ conversation: conversationId });
+
+//   //   const messages = await Message.find({ conversation: conversationId })
+//   //     .sort({ createdAt: 1 }) // oldest -> newest
+//   //     .skip(skip)
+//   //     .limit(limit)
+//   //     .populate('sender', 'name profile_picture')
+//   //     .lean();
+
+//   res.status(200).json({
+//     status: 'success',
+//     // pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+//     messages: conversation.messages,
+//   });
+// });
+
 exports.getMessages = asyncHandler(async (req, res, next) => {
-  const conversationId = req.params.conversationId;
+  const receiverId = req.params.receiverId;
+  const userId = req.user._id;
 
-  const conversation = await Conversation.findById(conversationId).populate(
-    'messages.sender',
-    'name profile_picture'
-  );
-  if (!conversation) return next(new ApiError('Conversation not found', 404));
+  // 1️⃣ Validate receiver exists
+  const receiver = await User.findById(receiverId).select('name role profile_picture');
+  if (!receiver) return next(new ApiError('Receiver not found', 404));
 
-  //   const userId = req.user._id.toString();
-  //   const isParticipant = conversation.participants.some((p) => p.toString() === userId);
-  //   if (!isParticipant) return next(new ApiError('Not authorized to view messages', 403));
-  //   const total = await Message.countDocuments({ conversation: conversationId });
+  // 2️⃣ Find the conversation between user and receiver
+  const conversation = await Conversation.findOne({
+    participants: { $all: [receiverId, req.user._id] },
+  })
+    .populate('messages.sender', 'name profile_picture')
+    .lean();
 
-  //   const messages = await Message.find({ conversation: conversationId })
-  //     .sort({ createdAt: 1 }) // oldest -> newest
-  //     .skip(skip)
-  //     .limit(limit)
-  //     .populate('sender', 'name profile_picture')
-  //     .lean();
+  // If no conversation, return empty array
+  if (!conversation) {
+    return res.status(200).json({
+      status: 'success',
+      messages: [],
+      receiver: {
+        _id: receiver._id,
+        name: receiver.name,
+        role: receiver.role,
+        profile_picture: receiver.profile_picture,
+      },
+    });
+  }
 
+  // 3️⃣ Return all messages
   res.status(200).json({
     status: 'success',
-    // pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+    conversationId: conversation._id,
+    participants: conversation.participants,
     messages: conversation.messages,
   });
 });
@@ -216,12 +260,21 @@ exports.getMyConversations = asyncHandler(async (req, res, next) => {
   const userId = req.user._id;
 
   const conversations = await Conversation.find({
-  participants: userId.toString()
-})
-  .populate('participants', 'name profile_picture')
-  .populate('messages.sender', 'name profile_picture')
-  .sort({ lastMessageAt: -1 });
+    participants: userId.toString(),
+  })
+    .populate('participants', 'name ')
+    .populate('messages.sender', 'name  ')
+    .sort({ lastMessageAt: -1 })
+    .lean();
 
-
+     // 🔥 Remove teacherProfile manually if still present
+  conversations.forEach((conv) => {
+    conv.participants.forEach((p) => {
+      delete p.teacherProfile; // 🔥 safely removed
+    });
+    conv.messages.forEach((m) => {
+      if (m.sender) delete m.sender.teacherProfile; // 🔥 safely removed
+    });
+  });
   res.status(200).json({ status: 'success', count: conversations.length, conversations });
 });

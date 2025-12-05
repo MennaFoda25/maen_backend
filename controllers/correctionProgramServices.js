@@ -9,14 +9,15 @@ const factory = require('../controllers/handlerFactory');
 // Helper to safely convert strings or arrays into array of strings
 const toArray = (value) => {
   if (!value) return [];
-  if (Array.isArray(value)) {return value.map((v) =>{
-      if (typeof v === "string") return v.trim();
+  if (Array.isArray(value)) {
+    return value.map((v) => {
+      if (typeof v === 'string') return v.trim();
       return v; // keep objects unchanged
     });
   }
 
   // If value is an object, wrap in array
-  if (typeof value === "object") return [value];
+  if (typeof value === 'object') return [value];
 
   // Otherwise treat as string "a,b,c"
   return String(value)
@@ -35,6 +36,16 @@ exports.createCorrectionProgram = asyncHandler(async (req, res, next) => {
   if (student.status !== 'active') {
     return next(new ApiError('Only active student can proceed', 403));
   }
+  // Auto-extract days from preferredTimes
+  let days = [];
+
+  if (Array.isArray(req.body.preferredTimes)) {
+    days = req.body.preferredTimes.map((pt) => pt.day).filter(Boolean); // remove null/undefined
+  }
+
+  // if (!days.length) {
+  //   return next(new ApiError('preferredTimes must include at least one day', 400));
+  // }
 
   const newProgram = await CorrectionProgram.create({
     student: student._id,
@@ -43,7 +54,7 @@ exports.createCorrectionProgram = asyncHandler(async (req, res, next) => {
     weeklySessions: req.body.weeklySessions,
     sessionDuration: req.body.sessionDuration,
     preferredTimes: toArray(req.body.preferredTimes),
-   // days: toArray(req.body.days),
+    //  days: Array.isArray(req.body.days) ? req.body.days : [req.body.days],
     teacher: req.body.teacher,
     planName: req.body.planName,
     fromSurah: req.body.fromSurah,
@@ -57,11 +68,22 @@ exports.createCorrectionProgram = asyncHandler(async (req, res, next) => {
     status: 'active',
   });
 
+  const teacher = await User.findById(newProgram.teacher);
+
+  let createdSessions = [];
+  if (teacher) {
+    try {
+      createdSessions = await generatePlanSessionsForProgram(newProgram, teacher);
+    } catch (err) {
+      console.error('Error generating plan sessions:', err.message);
+      // Continue even if session generation fails - the program is created
+    }
+  }
+
   let populatedTrial = null;
 
   //const programData = await CorrectionProgram.findById(newProgram._id);
   if (req.body.trialSession && req.body.teacher) {
-    
     const trial = await createTrialSession({
       programId: newProgram._id,
       programModel: 'CorrectionProgram',
@@ -87,6 +109,8 @@ exports.createCorrectionProgram = asyncHandler(async (req, res, next) => {
     data: {
       program: populatedProgram,
       trialSession: populatedTrial,
+      createdSessions: createdSessions.length,
+      createdSessions,
     },
   });
 });
@@ -143,7 +167,7 @@ exports.getAssignedTeacherTrials = asyncHandler(async (req, res, next) => {
     return next(new ApiError('Only teachers can access trial sessions', 403));
   }
 
-  const trialSession = await Session.find({ teacher, type:"trial" })
+  const trialSession = await Session.find({ teacher, type: 'trial' })
     .populate('student', 'name email')
     .populate('program', 'planName goal currentLevel status')
     .sort({ createdAt: -1 });

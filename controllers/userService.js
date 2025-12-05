@@ -93,36 +93,39 @@ exports.updateUser = asyncHandler(async (req, res, next) => {
   }
   if (user.role === 'teacher') {
     const { bio, certificates, specialties, hourly_rate, availabilitySchedule } = req.body;
-    updateData.teacherProfile = {
-      bio: bio ?? user.teacherProfile?.bio ?? '',
-      specialties: specialties
-        ? Array.isArray(specialties)
-          ? specialties
-          : String(specialties)
-              .split(',')
-              .map((v) => v.trim())
-        : (user.teacherProfile?.specialties ?? []),
-      hourly_rate: hourly_rate ?? user.teacherProfile?.hourly_rate ?? 0,
-      availabilitySchedule: availabilitySchedule
-        ? Array.isArray(availabilitySchedule)
-          ? availabilitySchedule
-          : String(availabilitySchedule)
-              .split(',')
-              .map((v) => v.trim())
-        : (user.teacherProfile?.availabilitySchedule ?? []),
-      // Handle certificate uploads from file upload middleware
-      certificates:
-        req.uploadedFiles?.certificates?.length > 0
-          ? req.uploadedFiles.certificates.map((cert) => cert.fileUrl)
-          : certificates
-            ? Array.isArray(certificates)
-              ? certificates
-              : String(certificates)
-                  .split(',')
-                  .map((v) => v.trim())
-            : (user.teacherProfile?.certificates ?? []),
-    };
-  }
+    let parsedSchedule = user.teacherProfile?.availabilitySchedule ?? [];
+    if (availabilitySchedule && Array.isArray(availabilitySchedule)) {
+      parsedSchedule = availabilitySchedule.map((item) => ({
+        day: item.day,
+        slots: [
+          {
+            start: item.start,
+            end: item.end,
+          },
+        ],
+      }));
+    }
+     updateData.teacherProfile = {
+    bio: bio ?? user.teacherProfile?.bio ?? '',
+    specialties: specialties
+      ? Array.isArray(specialties)
+        ? specialties
+        : String(specialties).split(',').map((v) => v.trim())
+      : user.teacherProfile?.specialties ?? [],
+    hourly_rate: hourly_rate ?? user.teacherProfile?.hourly_rate ?? 0,
+
+    availabilitySchedule: parsedSchedule,
+
+    certificates:
+      req.uploadedFiles?.certificates?.length > 0
+        ? req.uploadedFiles.certificates.map((cert) => cert.fileUrl)
+        : certificates
+          ? Array.isArray(certificates)
+            ? certificates
+            : String(certificates).split(',').map((v) => v.trim())
+          : user.teacherProfile?.certificates ?? [],
+  };
+}
 
   const updatedUser = await User.findByIdAndUpdate(user._id, updateData, {
     new: true,

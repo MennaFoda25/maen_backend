@@ -46,8 +46,9 @@ const memorizationProgramSchema = new mongoose.Schema(
       enum: [1, 3, 6],
       required: true,
     },
+    days:[String],
 
-    meetingLing: String,
+    meetingLink: String,
     meetingId: {
       type: String,
       unique: false,

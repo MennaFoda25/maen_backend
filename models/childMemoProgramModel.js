@@ -53,6 +53,7 @@ const childMemProgramSchema = new mongoose.Schema(
         start: String, // e.g. "18:00"
       },
     ],
+    days:[String],
 
     // Teacher/session preferences
     teacherGender: {
@@ -86,10 +87,9 @@ const childMemProgramSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    meetingLing: String,
+    meetingLink: String,
     meetingId: {
       type: String,
-      unique:false,
       default: () => crypto.randomBytes(8).toString('hex'),
     },
     // meta

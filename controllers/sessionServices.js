@@ -7,6 +7,40 @@ const MemorizationProgram = require('../models/memorizationProgramModel');
 const CorrectionProgram = require('../models/correctionProgramModel');
 const ChildMemorizationProgram = require('../models/childMemoProgramModel');
 const ProgramType = require('../models/programTypeModel');
+const crypto = require('crypto');
+
+// const checkOverLap = asyncHandler(async ({ teacherId, start, duration }) => {
+//   //session times
+//   const startDate = new Date(start);
+//   const endDate = new Date(startDate.getTime() + duration * 60000);
+
+//   console.log(`🔍 Checking overlap for teacher ${teacherId}`);
+//   console.log(`   Session: ${startDate.toISOString()} to ${endDate.toISOString()}`);
+
+//   const conflict = await Session.findOne({
+//     teacher: teacherId,
+//     status: { $in: ['pending', 'scheduled'] },
+//     $or: [
+//       {
+//         scheduledAtDate: { $gte: startDate, $lt: endDate },
+//       },
+//       {
+//         scheduledAtDate: { $lte: startDate },
+//         $expr: {
+//           $gt: [{ $add: ['$scheduledAtDate', { $multiply: ['$duration', 60000] }] }, startDate],
+//         },
+//       },
+//     ],
+//   }).lean();
+
+//   if (conflict) {
+//     console.log(`   ⚠️  Conflict found with session:`, conflict._id);
+//   } else {
+//     console.log(`   ✅ No conflicts found`);
+//   }
+
+//   return !!conflict;
+// });
 
 const checkOverLap = asyncHandler(async ({ teacherId, start, duration }) => {
   //session times
@@ -44,6 +78,42 @@ const checkOverLap = asyncHandler(async ({ teacherId, start, duration }) => {
 function formatTime(date) {
   return date.toTimeString().slice(0, 5);
 }
+// function removeBookedTimeFromSlots(dayRecord, bookingStart, bookingEnd) {
+//   const updatedSlots = [];
+//   for (const slot of dayRecord.slots) {
+//     const [sH, sM] = slot.start.split(':').map(Number);
+//     const [eH, eM] = slot.end.split(':').map(Number);
+
+//     const ref = new Date(bookingStart);
+//     const slotStart = new Date(ref);
+//     slotStart.setHours(sH, sM, 0, 0);
+//     const slotEnd = new Date(ref);
+//     slotEnd.setHours(eH, eM, 0, 0);
+
+//     if (bookingEnd <= slotStart || bookingStart >= slotEnd) {
+//       updatedSlots.push(slot);
+//       continue;
+//     }
+
+//     if (bookingStart > slotStart) {
+//       updatedSlots.push({
+//         start: slot.start,
+//         end: formatTime(bookingStart),
+//       });
+//     }
+
+//     if (bookingEnd < slotEnd) {
+//       updatedSlots.push({
+//         start: formatTime(bookingEnd),
+//         end: slot.end,
+//       });
+//     }
+//   }
+
+//   dayRecord.slots = updatedSlots;
+// }
+
+// Utility: get next date for weekday (no ISO format needed)
 
 function removeBookedTimeFromSlots(dayRecord, bookingStart, bookingEnd) {
   const updatedSlots = [];
@@ -79,8 +149,6 @@ function removeBookedTimeFromSlots(dayRecord, bookingStart, bookingEnd) {
 
   dayRecord.slots = updatedSlots;
 }
-
-// Utility: get next date for weekday (no ISO format needed)
 function nextDateForDay(day, addDays = 0) {
   const map = {
     sunday: 0,
@@ -103,6 +171,217 @@ function nextDateForDay(day, addDays = 0) {
 }
 
 // Helper function to generate plan sessions (can be called from route or directly)
+// async function generatePlanSessionsLogic(program, teacher, programModel) {
+//   const schedule = teacher?.teacherProfile?.availabilitySchedule || [];
+
+//   const weeklySessions = program.weeklySessions;
+//   const duration = program.sessionDuration;
+//   const weeks = program.packageDuration * 4;
+//   const totalSessions = weeklySessions * weeks;
+//   const programId = program._id;
+
+//   // NORMALIZE preferred times for each program type
+//   let preferred = [];
+
+//   if (programModel === 'CorrectionProgram') {
+//     // Correction program has NO day/start in preferredTimes
+//     // → Use program.days + teacher's earliest slot
+//     if (!program.preferredTimes || !Array.isArray(program.preferredTimes)) {
+//       throw new ApiError('Program must have preferred times specified', 400);
+//     }
+
+//     if (!schedule || schedule.length === 0) {
+//       throw new ApiError(
+//         `Teacher has no availability schedule set. Please configure teacher availability for days: [${program.days.join(', ')}] before generating sessions.`,
+//         400
+//       );
+//     }
+
+//     const availableDays = schedule.map((d) => d.day);
+//     console.log(`📅 CorrectionProgram requires days: [${program.days.join(', ')}]`);
+//     console.log(`📅 Teacher has availability for: [${availableDays.join(', ')}]`);
+
+//     preferred = program.days
+//       .map((day) => {
+//         const rec = schedule.find(
+//           (d) => d.day && d.day.toLowerCase() === String(day).toLowerCase()
+//         );
+//         if (!rec || !rec.slots || rec.slots.length === 0) {
+//           console.log(`  ❌ No availability found for day: "${day}"`);
+//           return null;
+//         }
+//         console.log(`  ✅ Found availability for "${day}" at ${rec.slots[0].start}`);
+
+//         return {
+//           day,
+//           start: rec.slots[0].start, // earliest available teacher time
+//         };
+//       })
+//       .filter(Boolean);
+//   } else if (
+//     programModel === 'MemorizationProgram' ||
+//     programModel === 'ChildMemorizationProgram'
+//   ) {
+//     if (!program.preferredTimes || !Array.isArray(program.preferredTimes)) {
+//       throw new ApiError('Program must have preferred times specified', 400);
+//     }
+
+//     const availableDays = schedule.map((d) => d.day);
+//     console.log(
+//       `📅 ${programModel} requires days: [${program.preferredTimes.map((p) => p.day).join(', ')}]`
+//     );
+//     console.log(`📅 Teacher has availability for: [${availableDays.join(', ')}]`);
+
+//     // Validate that preferredTimes have both day and start, and match teacher's available days
+//     preferred = program.preferredTimes
+//       .filter((t) => t?.day && t?.start)
+//       .map((t) => {
+//         const rec = schedule.find(
+//           (d) => d.day && d.day.toLowerCase() === String(t.day).toLowerCase()
+//         );
+//         if (!rec || !rec.slots || rec.slots.length === 0) {
+//           console.log(`  ❌ No availability found for "${t.day}" at "${t.start}"`);
+//           return null;
+//         }
+//         console.log(`  ✅ Found availability for "${t.day}"`);
+//         return t;
+//       })
+//       .filter(Boolean);
+//   }
+
+//   if (!preferred.length) {
+//     const availableDays = schedule.map((d) => d.day).join(', ') || 'NONE';
+//     let errorMsg =
+//       'No valid preferred times to generate sessions. Program requires days/times that teacher is not available for.';
+
+//     if (programModel === 'CorrectionProgram') {
+//       errorMsg = `CorrectionProgram requires days [${program.days.join(', ')}] but teacher only has availability on [${availableDays}].`;
+//     } else {
+//       const requiredDays = program.preferredTimes.map((p) => `${p.day}(${p.start})`).join(', ');
+//       errorMsg = `${programModel} requires [${requiredDays}] but teacher only has availability on [${availableDays}].`;
+//     }
+
+//     throw new ApiError(errorMsg, 400);
+//   }
+
+//   // Helper to compute date of a specific weekday + time + week offset
+//   const computeDate = (day, time, weekOffset) => {
+//     const map = {
+//       sunday: 0,
+//       monday: 1,
+//       tuesday: 2,
+//       wednesday: 3,
+//       thursday: 4,
+//       friday: 5,
+//       saturday: 6,
+//     };
+//     const today = new Date();
+//     const target = map[day.toLowerCase()];
+//     const diff = (target + 7 - today.getDay()) % 7;
+
+//     const d = new Date(today);
+//     d.setDate(today.getDate() + diff + weekOffset * 7);
+
+//     const [h, m] = time.split(':').map(Number);
+//     d.setHours(h, m, 0, 0);
+
+//     return d;
+//   };
+
+//   const created = [];
+//   let count = 0;
+
+//   // Make a deep copy of schedule to modify it
+//   const scheduleSnapshot = JSON.parse(JSON.stringify(schedule));
+
+//   for (let w = 0; w < weeks && count < totalSessions; w++) {
+//     let createdThisWeek = 0;
+
+//     for (const pref of preferred) {
+//       if (count >= totalSessions) break;
+
+//       // Use the snapshot instead of original schedule
+//       const dayRecord = scheduleSnapshot.find(
+//         (d) => d.day && d.day.toLowerCase() === String(pref.day).toLowerCase()
+//       );
+
+//       if (!dayRecord || !dayRecord.slots?.length) {
+//         console.log(`  ⚠️  Week ${w + 1}: Day "${pref.day}" has no slots available, skipping`);
+//         continue;
+//       }
+
+//       const startDate = computeDate(pref.day, pref.start, w);
+//       const endDate = new Date(startDate.getTime() + duration * 60000);
+
+//       console.log(`  🔍 Week ${w + 1}: Checking ${pref.day} at ${pref.start}`);
+//       console.log(`    Start: ${startDate.toISOString()}, End: ${endDate.toISOString()}`);
+//       console.log(`    Available slots: ${JSON.stringify(dayRecord.slots)}`);
+
+//       // find slot that contains that time
+//       const slot = dayRecord.slots.find((s) => {
+//         const [hs, ms] = s.start.split(':').map(Number);
+//         const [he, me] = s.end.split(':').map(Number);
+
+//         const ref = new Date(startDate);
+//         const slotStart = new Date(ref);
+//         slotStart.setHours(hs, ms, 0, 0);
+//         const slotEnd = new Date(ref);
+//         slotEnd.setHours(he, me, 0, 0);
+
+//         const fits = slotStart <= startDate && slotEnd >= endDate;
+//         console.log(
+//           `    Checking slot ${s.start}-${s.end}: slotStart=${slotStart.toISOString()}, slotEnd=${slotEnd.toISOString()}, fits=${fits}`
+//         );
+//         return fits;
+//       });
+
+//       if (!slot) {
+//         console.log(`    ❌ No suitable slot found for ${pref.day} at ${pref.start}, skipping`);
+//         continue;
+//       }
+
+//       console.log(`    ✅ Creating session for ${pref.day} at ${pref.start}`);
+
+//       // CREATE session
+//       const newSession = await Session.create({
+//         program: programId,
+//         programModel,
+//         student: program.student,
+//         teacher: program.teacher,
+//         duration,
+//         type: 'program',
+//         status: 'scheduled',
+//         scheduledAtDate: new Date(startDate),
+//         scheduledAt: [{ day: pref.day, slots: [{ start: pref.start }] }],
+//       });
+
+//       created.push(newSession);
+//       count++;
+//       createdThisWeek++;
+
+//       console.log(`    ✨ Session created! Total so far: ${count}/${totalSessions}`);
+
+//       // ✨ REMOVE BOOKED TIME FROM TEACHER'S AVAILABILITY
+//       removeBookedTimeFromSlots(dayRecord, startDate, endDate);
+//       console.log(
+//         `    ✅ Removed booked time from teacher's availability. Remaining slots: ${JSON.stringify(dayRecord.slots)}`
+//       );
+
+//       if (createdThisWeek >= weeklySessions) {
+//         console.log(`  ✨ Week ${w + 1} complete: ${createdThisWeek} sessions created`);
+//         break;
+//       }
+//     }
+//   }
+
+//   // ✨ PERSIST UPDATED SCHEDULE TO DATABASE
+//   teacher.teacherProfile.availabilitySchedule = scheduleSnapshot;
+//   await teacher.save();
+//   console.log(`✅ Teacher availability updated and saved to database`);
+
+//   return created;
+// }
+
 async function generatePlanSessionsLogic(program, teacher, programModel) {
   const schedule = teacher?.teacherProfile?.availabilitySchedule || [];
 
@@ -112,46 +391,34 @@ async function generatePlanSessionsLogic(program, teacher, programModel) {
   const totalSessions = weeklySessions * weeks;
   const programId = program._id;
 
-  await ensureProgramMeetingId(program);
   // NORMALIZE preferred times for each program type
   let preferred = [];
 
   if (programModel === 'CorrectionProgram') {
-    // Correction program has NO day/start in preferredTimes
-    // → Use program.days + teacher's earliest slot
-    if (!program.days || !Array.isArray(program.days) || program.days.length === 0) {
-      throw new ApiError('Correction program must have days specified', 400);
-    }
-
-    if (!schedule || schedule.length === 0) {
-      throw new ApiError(
-        `Teacher has no availability schedule set. Please configure teacher availability for days: [${program.days.join(', ')}] before generating sessions.`,
-        400
-      );
+     if (!program.preferredTimes || !Array.isArray(program.preferredTimes)) {
+      throw new ApiError('Correction Program must have preferredTimes specified', 400);
     }
 
     const availableDays = schedule.map((d) => d.day);
-    console.log(`📅 CorrectionProgram requires days: [${program.days.join(', ')}]`);
-    console.log(`📅 Teacher has availability for: [${availableDays.join(', ')}]`);
-
-    preferred = program.days
-      .map((day) => {
+    // Correction program: use preferredTimes if available, else use days + teacher's first slot
+   
+    preferred = program.preferredTimes
+      .filter((t) => t?.day && t?.start)
+      .map((t) => {
         const rec = schedule.find(
-          (d) => d.day && d.day.toLowerCase() === String(day).toLowerCase()
+          (d) => d.day && d.day.toLowerCase() === String(t.day).toLowerCase()
         );
+
         if (!rec || !rec.slots || rec.slots.length === 0) {
-          console.log(`  ❌ No availability found for day: "${day}"`);
+          console.log(`❌ No slot matches ${t.day} @ ${t.start}`);
           return null;
         }
-        console.log(`  ✅ Found availability for "${day}" at ${rec.slots[0].start}`);
 
-        return {
-          day,
-          start: rec.slots[0].start, // earliest available teacher time
-        };
+        console.log(`✅ Using preferred time ${t.day}@${t.start}`);
+        return t;
       })
       .filter(Boolean);
-  } else if (
+  }else if (
     programModel === 'MemorizationProgram' ||
     programModel === 'ChildMemorizationProgram'
   ) {
@@ -184,17 +451,13 @@ async function generatePlanSessionsLogic(program, teacher, programModel) {
 
   if (!preferred.length) {
     const availableDays = schedule.map((d) => d.day).join(', ') || 'NONE';
-    let errorMsg =
-      'No valid preferred times to generate sessions. Program requires days/times that teacher is not available for.';
-
-    if (programModel === 'CorrectionProgram') {
-      errorMsg = `CorrectionProgram requires days [${program.days.join(', ')}] but teacher only has availability on [${availableDays}].`;
-    } else {
-      const requiredDays = program.preferredTimes.map((p) => `${p.day}(${p.start})`).join(', ');
-      errorMsg = `${programModel} requires [${requiredDays}] but teacher only has availability on [${availableDays}].`;
-    }
-
-    throw new ApiError(errorMsg, 400);
+    throw new ApiError(
+      `${programModel} has no valid preferred times matching teacher availability. ` +
+        `Required: [${program.preferredTimes
+          .map((p) => `${p.day}@${p.start}`)
+          .join(', ')}], Teacher available: [${availableDays}]`,
+      400
+    );
   }
 
   // Helper to compute date of a specific weekday + time + week offset
@@ -227,84 +490,63 @@ async function generatePlanSessionsLogic(program, teacher, programModel) {
   // Make a deep copy of schedule to modify it
   const scheduleSnapshot = JSON.parse(JSON.stringify(schedule));
 
+  console.log(
+    `📊 Plan: Create ${totalSessions} total sessions (${weeklySessions}/week for ${weeks} weeks)`
+  );
+  console.log(`📊 Preferred times/days available:`, preferred);
+
   for (let w = 0; w < weeks && count < totalSessions; w++) {
     let createdThisWeek = 0;
-
     for (const pref of preferred) {
-      if (count >= totalSessions) break;
-
       // Use the snapshot instead of original schedule
       const dayRecord = scheduleSnapshot.find(
         (d) => d.day && d.day.toLowerCase() === String(pref.day).toLowerCase()
       );
+      if (!dayRecord || !dayRecord.slots?.length) continue;
 
-      if (!dayRecord || !dayRecord.slots?.length) {
-        console.log(`  ⚠️  Week ${w + 1}: Day "${pref.day}" has no slots available, skipping`);
-        continue;
-      }
+      // Iterate through all slots for this day in this week
+      for (const slot of [...dayRecord.slots]) {
+        if (createdThisWeek >= weeklySessions || count >= totalSessions) break;
 
-      const startDate = computeDate(pref.day, pref.start, w);
-      const endDate = new Date(startDate.getTime() + duration * 60000);
+        const startDate = computeDate(pref.day, slot.start, w);
+        const endDate = new Date(startDate.getTime() + duration * 60000);
 
-      console.log(`  🔍 Week ${w + 1}: Checking ${pref.day} at ${pref.start}`);
-      console.log(`    Start: ${startDate.toISOString()}, End: ${endDate.toISOString()}`);
-      console.log(`    Available slots: ${JSON.stringify(dayRecord.slots)}`);
-
-      // find slot that contains that time
-      const slot = dayRecord.slots.find((s) => {
-        const [hs, ms] = s.start.split(':').map(Number);
-        const [he, me] = s.end.split(':').map(Number);
-
-        const ref = new Date(startDate);
-        const slotStart = new Date(ref);
+        // Check if session fits in slot
+        const [hs, ms] = slot.start.split(':').map(Number);
+        const [he, me] = slot.end.split(':').map(Number);
+        const slotStart = new Date(startDate);
         slotStart.setHours(hs, ms, 0, 0);
-        const slotEnd = new Date(ref);
+        const slotEnd = new Date(startDate);
         slotEnd.setHours(he, me, 0, 0);
 
-        const fits = slotStart <= startDate && slotEnd >= endDate;
-        console.log(
-          `    Checking slot ${s.start}-${s.end}: slotStart=${slotStart.toISOString()}, slotEnd=${slotEnd.toISOString()}, fits=${fits}`
-        );
-        return fits;
-      });
+        const fits =
+          slotStart.getTime() <= startDate.getTime() && slotEnd.getTime() >= endDate.getTime();
+        if (!fits) continue;
 
-      if (!slot) {
-        console.log(`    ❌ No suitable slot found for ${pref.day} at ${pref.start}, skipping`);
-        continue;
-      }
+        // CREATE session with unique meetingId
+        const newSession = await Session.create({
+          program: programId,
+          programModel,
+          student: program.student || program.parent,
+          teacher: program.teacher,
+          duration,
+          type: 'program',
+          status: 'scheduled',
+          scheduledAtDate: new Date(startDate),
+          scheduledAt: [{ day: pref.day, slots: [{ start: slot.start }] }],
+          meetingId: crypto.randomBytes(8).toString('hex'),
+          meetingLink: program.meetingLink || null,
+        });
 
-      console.log(`    ✅ Creating session for ${pref.day} at ${pref.start}`);
+        created.push(newSession);
+        count++;
+        createdThisWeek++;
 
-      // CREATE session
-      const newSession = await Session.create({
-        program: programId,
-        programModel,
-        student: program.student,
-        teacher: program.teacher,
-        duration,
-        type: 'program',
-        status: 'scheduled',
-        scheduledAtDate: new Date(startDate),
-        scheduledAt: [{ day: pref.day, slots: [{ start: pref.start }] }],
-        meetingId: program.meetingId,
-        meetingLink: program.meetingLink || null,
-      });
+        // Remove booked time from teacher's availability
+        removeBookedTimeFromSlots(dayRecord, startDate, endDate);
 
-      created.push(newSession);
-      count++;
-      createdThisWeek++;
-
-      console.log(`    ✨ Session created! Total so far: ${count}/${totalSessions}`);
-
-      // ✨ REMOVE BOOKED TIME FROM TEACHER'S AVAILABILITY
-      removeBookedTimeFromSlots(dayRecord, startDate, endDate);
-      console.log(
-        `    ✅ Removed booked time from teacher's availability. Remaining slots: ${JSON.stringify(dayRecord.slots)}`
-      );
-
-      if (createdThisWeek >= weeklySessions) {
-        console.log(`  ✨ Week ${w + 1} complete: ${createdThisWeek} sessions created`);
-        break;
+        // Break if weekly session limit reached
+        if (createdThisWeek >= weeklySessions) break;
       }
     }
   }
@@ -330,6 +572,56 @@ exports.generatePlanSessionsForProgram = asyncHandler(async (program, teacher) =
   return generatePlanSessionsLogic(program, teacher, programModel);
 });
 
+// exports.generatePlanSessions = asyncHandler(async (req, res, next) => {
+//   const { programModel } = req.body;
+//   const programId = req.params.id;
+
+//   const ProgramModel = {
+//     CorrectionProgram,
+//     MemorizationProgram,
+//     ChildMemorizationProgram,
+//   }[programModel];
+
+//   if (!ProgramModel) return next(new ApiError('Program not found', 404));
+//   const program = await ProgramModel.findById(programId);
+//   if (!program) return next(new ApiError('Program not found', 404));
+
+//   const teacher = await User.findById(program.teacher);
+//   if (!teacher) return next(new ApiError('Teacher not found', 404));
+
+//   // ✨ VALIDATION: Check if teacher is dedicated to this program type
+//   const teacherPreferences = teacher.teacherProfile?.programPreference || [];
+//   const programType = await ProgramType.findOne({ key: programModel });
+
+//   if (programType && teacherPreferences.length > 0) {
+//     const isDedicatedToProgram = teacherPreferences.some(
+//       (pref) => pref._id.toString() === programType._id.toString()
+//     );
+
+//     if (!isDedicatedToProgram) {
+//       return next(
+//         new ApiError(
+//           `Teacher is not dedicated to ${programModel}. Teacher specializes in: ${teacherPreferences.join(', ')}`,
+//           403
+//         )
+//       );
+//     }
+//   }
+
+//   try {
+//     // Call the core logic which validates and creates sessions
+//     const created = await generatePlanSessionsLogic(program, teacher, programModel);
+
+//     return res.status(201).json({
+//       status: 'success',
+//       totalCreated: created.length,
+//       sessions: created,
+//     });
+//   } catch (error) {
+//     return next(error);
+//   }
+// });
+
 exports.generatePlanSessions = asyncHandler(async (req, res, next) => {
   const { programModel } = req.body;
   const programId = req.params.id;
@@ -343,7 +635,7 @@ exports.generatePlanSessions = asyncHandler(async (req, res, next) => {
   if (!ProgramModel) return next(new ApiError('Program not found', 404));
   const program = await ProgramModel.findById(programId);
   if (!program) return next(new ApiError('Program not found', 404));
-  await ensureProgramMeetingId(program);
+
   const teacher = await User.findById(program.teacher);
   if (!teacher) return next(new ApiError('Teacher not found', 404));
 
@@ -353,7 +645,7 @@ exports.generatePlanSessions = asyncHandler(async (req, res, next) => {
 
   if (programType && teacherPreferences.length > 0) {
     const isDedicatedToProgram = teacherPreferences.some(
-      (pref) => pref.toString() === programType._id.toString()
+      (pref) => pref._id.toString() === programType._id.toString()
     );
 
     if (!isDedicatedToProgram) {
@@ -366,18 +658,14 @@ exports.generatePlanSessions = asyncHandler(async (req, res, next) => {
     }
   }
 
-  try {
-    // Call the core logic which validates and creates sessions
-    const created = await generatePlanSessionsLogic(program, teacher, programModel);
+  // Call the core logic which validates and creates sessions
+  const created = await generatePlanSessionsLogic(program, teacher, programModel);
 
-    return res.status(201).json({
-      status: 'success',
-      totalCreated: created.length,
-      sessions: created,
-    });
-  } catch (error) {
-    return next(error);
-  }
+  return res.status(201).json({
+    status: 'success',
+    totalCreated: created.length,
+    sessions: created,
+  });
 });
 
 exports.createTrialSession = asyncHandler(
@@ -399,6 +687,7 @@ exports.createTrialSession = asyncHandler(
       preferredTimes,
       type: 'trial',
       days,
+      meetingId: crypto.randomBytes(8).toString('hex'), // <— UNIQUE TRIAL ID
     });
     return trial;
   }
@@ -541,10 +830,16 @@ exports.trialSessionAccept = asyncHandler(async (req, res, next) => {
   if (trial.teacher.toString() !== req.user._id.toString()) {
     return next(new ApiError('You are not authorized to schedule this trial', 403));
   }
+  const dateObj = new Date(scheduledAt);
+  if (isNaN(dateObj)) {
+    return next(new ApiError('Invalid date format', 400));
+  }
+
+  //trial.scheduledAt = new Date(scheduledAt);
 
   const conflict = await checkOverLap({
     teacherId: trial.teacher,
-    start: scheduledAt,
+    start: dateObj.toISOString(),
     duration: trial.duration,
   });
 
@@ -552,7 +847,19 @@ exports.trialSessionAccept = asyncHandler(async (req, res, next) => {
     return next(new ApiError('Teacher has session at the same time', 400));
   }
 
-  trial.scheduledAt = scheduledAt;
+  trial.scheduledAt = dateObj;
+  // Step 3 — Convert to structured scheduledAt
+  const dayName = dateObj.toLocaleString('en-US', { weekday: 'long' }).toLowerCase(); // monday, tuesday...
+
+  const startTime = dateObj.toISOString().slice(11, 16); // "17:00"
+
+  trial.scheduledAt = [
+    {
+      day: dayName,
+      slots: [{ start: startTime }],
+    },
+  ];
+
   trial.meetingLink = meetingLink;
   trial.status = 'scheduled';
 

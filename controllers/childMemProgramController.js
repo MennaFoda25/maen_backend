@@ -31,6 +31,17 @@ exports.createChildMemProgram = asyncHandler(async (req, res, next) => {
   const parent = await User.findById(req.user._id);
   if (!parent) return next(new ApiError('Parent not found', 404));
 
+    // Auto-extract days from preferredTimes
+    let days = [];
+  
+    if (Array.isArray(req.body.preferredTimes)) {
+      days = req.body.preferredTimes.map((pt) => pt.day).filter(Boolean); // remove null/undefined
+    }
+  
+    if (!days.length) {
+      return next(new ApiError('preferredTimes must include at least one day', 400));
+    }
+  
   const payload = {
     firebaseUid: parent.firebaseUid,
     parent: parent._id,
@@ -43,7 +54,7 @@ exports.createChildMemProgram = asyncHandler(async (req, res, next) => {
     mainGoal: req.body.mainGoal,
     weeklySessions: req.body.weeklySessions,
     sessionDuration: req.body.sessionDuration,
-    days: toArray(req.body.days),
+    days,
     preferredTimes: toArray(req.body.preferredTimes),
     teacherGender: req.body.teacherGender,
     notesForTeacher: req.body.notesForTeacher,

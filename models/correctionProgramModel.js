@@ -27,10 +27,9 @@ const correctionProgramSchema = new mongoose.Schema(
       ],
       required: [true, 'Goal is required'],
     },
-    meetingLing: String,
+    meetingLink: String,
     meetingId: {
       type: String,
-      unique: false,
       default: () => crypto.randomBytes(8).toString('hex'),
     },
     currentLevel: {
@@ -57,6 +56,7 @@ const correctionProgramSchema = new mongoose.Schema(
         start: String, // e.g. "18:00"
       },
     ],
+    //days:[String],
     planName: {
       type: String,
       required: true,

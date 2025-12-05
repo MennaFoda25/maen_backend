@@ -35,11 +35,22 @@ exports.createMemorizationProgram = asyncHandler(async (req, res, next) => {
     return next(new ApiError('only active student can create a memorization program', 403));
   }
 
+  // Auto-extract days from preferredTimes
+  let days = [];
+
+  if (Array.isArray(req.body.preferredTimes)) {
+    days = req.body.preferredTimes.map((pt) => pt.day).filter(Boolean); // remove null/undefined
+  }
+
+  // if (!days.length) {
+  //   return next(new ApiError('preferredTimes must include at least one day', 400));
+  // }
+
   const newProgram = await MemorizationProgram.create({
     firebaseUid: student.firebaseUid,
     student: student._id,
     //trackType: req.body.trackType,
-    teacher: req.body.teacher,
+    teacher: req.body.teacher|| req.body.assignedTeacher,
     programType: req.body.programType,
     planName: req.body.planName,
     memorizationDirection: req.body.memorizationDirection,
@@ -48,7 +59,7 @@ exports.createMemorizationProgram = asyncHandler(async (req, res, next) => {
     sessionDuration: req.body.sessionDuration,
     packageDuration: req.body.packageDuration,
     preferredTimes: toArray(req.body.preferredTimes),
-    days: toArray(req.body.days),
+    days,
     memorizationRange: {
       fromSurah: req.body.fromSurah,
       fromAyah: req.body.fromAyah,

@@ -1,11 +1,12 @@
-const crypto = require('crypto')
-const programTypeModel = require('../models/programTypeModel')
+const crypto = require('crypto');
 
-async function ensureProgramMeetingId(){
-if(!programTypeModel.meetingId){
-    program.meetingId = crypto.randomBytes(8).toString('hex')
-    await program.save()
+async function ensureProgramMeetingId(program) {
+  if (!program.meetingId) {
+    program.meetingId = crypto.randomBytes(8).toString('hex');
+    await program.save();
+  }
+
+  return program.meetingId;
 }
-return program.meetingId
-}
+
 module.exports = { ensureProgramMeetingId };

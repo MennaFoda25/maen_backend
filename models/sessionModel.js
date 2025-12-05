@@ -57,9 +57,10 @@ const sessionSchema = new mongoose.Schema(
       },
     ],
     meetingLink: String,
-
-    meetingId: {
+   meetingId: {
       type: String,
+      unique: true,
+      default: () => crypto.randomBytes(8).toString('hex'), // e.g. “a4f9c2e8d1b0c933”
     },
     createdAt: {
       type: Date,

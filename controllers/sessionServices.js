@@ -8,6 +8,7 @@ const CorrectionProgram = require('../models/correctionProgramModel');
 const ChildMemorizationProgram = require('../models/childMemoProgramModel');
 const ProgramType = require('../models/programTypeModel');
 const crypto = require('crypto');
+const sendNotification = require('../utils/sendNotification');
 
 // const checkOverLap = asyncHandler(async ({ teacherId, start, duration }) => {
 //   //session times
@@ -908,6 +909,8 @@ exports.sessionStart = asyncHandler(async (req, res, next) => {
     },
     { new: true }
   );
+
+  sendN
 
   res.status(200).json({
     status: 'success',

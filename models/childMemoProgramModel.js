@@ -11,10 +11,33 @@ const memorizationRangeSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const perferredTimeSchema = new mongoose.Schema(
+  {
+    day: {
+      type: String,
+      required: true,
+      enum: ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
+    },
+    start: {
+      type: String,
+      required: true,
+      match: [/^([01]\d|2[0-3]):[0-5]\d$/, 'Invalid start time format, expected HH:MM'],
+    },
+
+    end: {
+      type: String,
+      required: true,
+      match: [/^([01]\d|2[0-3]):[0-5]\d$/, 'Invalid end time format, expected HH:MM'],
+    },
+  },
+  { _id: false }
+);
 const childMemProgramSchema = new mongoose.Schema(
   {
     firebaseUid: { type: String, required: true, index: true },
     parent: { type: mongoose.Schema.ObjectId, ref: 'User', required: true },
+
+    programTypeKey: { type: String, default: 'ChildMemorizationProgram' },
 
     // Child
     childName: { type: String, required: true, trim: true },
@@ -44,17 +67,10 @@ const childMemProgramSchema = new mongoose.Schema(
     //   validate: [(arr) => arr.length <= 5, 'Cannot exceed 5 days per week'],
     //   default: [],
     // },
-    preferredTimes: [
-      {
-        day: {
-          type: String,
-          enum: ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
-        },
-        start: String, // e.g. "18:00"
-      },
-    ],
-    days:[String],
-
+    preferredTimes: {
+      type: [perferredTimeSchema],
+      validate: [(v) => Array.isArray(v) && v.length > 0, 'Preferred times are required'],
+    },
     // Teacher/session preferences
     teacherGender: {
       type: String,

@@ -5,21 +5,15 @@ const asyncHandler = require('express-async-handler');
 const { createTrialSession } = require('./sessionServices');
 const User = require('../models/userModel');
 const factory = require('../controllers/handlerFactory');
+const ProgramType = require('../models/programTypeModel');
 
 // Helper to safely convert strings or arrays into array of strings
 const toArray = (value) => {
   if (!value) return [];
-  if (Array.isArray(value)) {
-    return value.map((v) => {
-      if (typeof v === 'string') return v.trim();
-      return v; // keep objects unchanged
-    });
-  }
-
-  // If value is an object, wrap in array
+  if (Array.isArray(value)) return value;
   if (typeof value === 'object') return [value];
 
-  // Otherwise treat as string "a,b,c"
+  // string "a,b" → array ["a", "b"]
   return String(value)
     .split(',')
     .map((v) => v.trim())
@@ -37,15 +31,28 @@ exports.createCorrectionProgram = asyncHandler(async (req, res, next) => {
     return next(new ApiError('Only active student can proceed', 403));
   }
   // Auto-extract days from preferredTimes
-  let days = [];
+  let preferredTimes  = toArray(req.body.preferredTimes);
+    // Each item must have: { day, start, end }
+  const invalid = preferredTimes.some(
+    (pt) =>
+      !pt ||
+      !pt.day ||
+      !pt.start ||
+      !pt.end ||
+      typeof pt.day !== 'string' ||
+      !/^([01]\d|2[0-3]):[0-5]\d$/.test(pt.start) ||
+      !/^([01]\d|2[0-3]):[0-5]\d$/.test(pt.end)
+  );
 
-  if (Array.isArray(req.body.preferredTimes)) {
-    days = req.body.preferredTimes.map((pt) => pt.day).filter(Boolean); // remove null/undefined
+  if (invalid || preferredTimes.length === 0) {
+    return next(
+      new ApiError(
+        'preferredTimes must be an array of objects: { day, start, end }',
+        400
+      )
+    );
   }
 
-  // if (!days.length) {
-  //   return next(new ApiError('preferredTimes must include at least one day', 400));
-  // }
 
   const newProgram = await CorrectionProgram.create({
     student: student._id,
@@ -53,9 +60,7 @@ exports.createCorrectionProgram = asyncHandler(async (req, res, next) => {
     currentLevel: req.body.currentLevel,
     weeklySessions: req.body.weeklySessions,
     sessionDuration: req.body.sessionDuration,
-    preferredTimes: toArray(req.body.preferredTimes),
-    //  days: Array.isArray(req.body.days) ? req.body.days : [req.body.days],
-    teacher: req.body.teacher,
+    preferredTimes: preferredTimes,
     planName: req.body.planName,
     fromSurah: req.body.fromSurah,
     toSurah: req.body.toSurah,
@@ -64,44 +69,55 @@ exports.createCorrectionProgram = asyncHandler(async (req, res, next) => {
     totalPages: req.body.totalPages,
     completedPages: req.body.completedPages || 0,
     packageDuration: req.body.packageDuration,
+    trialSession: req.body.trialSession,
 
     status: 'active',
   });
 
-  const teacher = await User.findById(newProgram.teacher);
+  const program = await CorrectionProgram.findById(newProgram._id)
+  if(!program) return next(new ApiError('Program could not be created',500));
 
-  let createdSessions = [];
-  if (teacher) {
-    try {
-      createdSessions = await generatePlanSessionsForProgram(newProgram, teacher);
-    } catch (err) {
-      console.error('Error generating plan sessions:', err.message);
-      // Continue even if session generation fails - the program is created
-    }
+const programModel = program.programTypeKey;
+// STEP 3 — Validate ProgramType exists
+  const programType = await ProgramType.findOne({ key: programModel });
+  if (!programType) {
+    console.log("❌ ProgramType not found for key:", programModel); // debugging
+    return next(new ApiError("ProgramType not found for this program", 404));
   }
 
-  let populatedTrial = null;
+
+  let createdSessions = []
+  let populatedTrial = null
+  // if (teacher) {
+  //   try {
+  //     createdSessions = await generatePlanSessionsForProgram(newProgram, teacher);
+  //   } catch (err) {
+  //     console.error('Error generating plan sessions:', err.message);
+  //     // Continue even if session generation fails - the program is created
+  //   }
+  // }
+
+  // let populatedTrial = null;
 
   //const programData = await CorrectionProgram.findById(newProgram._id);
-  if (req.body.trialSession && req.body.teacher) {
-    const trial = await createTrialSession({
-      programId: newProgram._id,
-      programModel: 'CorrectionProgram',
-      studentId: req.user._id,
-      teacherId: newProgram.teacher,
-      preferredTimes: newProgram.preferredTimes,
-      days: newProgram.days,
-    });
-    populatedTrial = (await trial)
-      ? await Session.findById(trial._id)
-          .populate('student', 'name email')
-          .populate('teacher', 'name email')
-      : null;
-  }
+  // if (req.body.trialSession && req.body.teacher) {
+  //   const trial = await createTrialSession({
+  //     programId: newProgram._id,
+  //     programModel: 'CorrectionProgram',
+  //     studentId: req.user._id,
+  //     teacherId: newProgram.teacher,
+  //     preferredTimes: newProgram.preferredTimes,
+  //     days: newProgram.days,
+  //   });
+  //   populatedTrial = (await trial)
+  //     ? await Session.findById(trial._id)
+  //         .populate('student', 'name email')
+  //         .populate('teacher', 'name email')
+  //     : null;
+  // }
   // Populate for response
   const populatedProgram = await CorrectionProgram.findById(newProgram._id)
     .populate('student', 'name email')
-    .populate('teacher', 'name email');
 
   res.status(201).json({
     status: 'success',
@@ -109,7 +125,7 @@ exports.createCorrectionProgram = asyncHandler(async (req, res, next) => {
     data: {
       program: populatedProgram,
       trialSession: populatedTrial,
-      createdSessions: createdSessions.length,
+     createdSessions: createdSessions.length,
       createdSessions,
     },
   });
@@ -142,8 +158,8 @@ exports.getMyCorrectionProgram = asyncHandler(async (req, res, next) => {
     return next(
       new ApiError(
         role === 'teacher'
-          ? 'No memorization programs assigned to you yet'
-          : "You don't have any memorization programs yet",
+          ? 'No correction programs assigned to you yet'
+          : "You don't have any correction programs yet",
         404
       )
     );
@@ -176,3 +192,4 @@ exports.getAssignedTeacherTrials = asyncHandler(async (req, res, next) => {
   }
   res.status(200).json({ status: 'success', count: trialSession.length, data: { trialSession } });
 });
+

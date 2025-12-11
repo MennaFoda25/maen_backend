@@ -23,9 +23,9 @@ exports.getFirebaseUser = asyncHandler(async (req, res, next) => {
     req.query?.firebaseUid ||
     req.headers['x-firebase-uid'];
 
-  if (!uid) {
-    return next(new ApiError('Missing firebaseUid. Please include it in the request.', 401));
-  }
+  // if (!uid) {
+  //   return next(new ApiError('Missing firebaseUid. Please include it in the request.', 401));
+  // }
   console.log('🔥 UID received:', uid);
 
   const user = await User.findOne({ firebaseUid: uid });
@@ -34,6 +34,7 @@ exports.getFirebaseUser = asyncHandler(async (req, res, next) => {
       message: 'User retrieved successfully',
       status: 'active',
       user,
+      notificationToken: user.notificationToken,
     });
   }
 

@@ -7,41 +7,69 @@ const certificateSchema = new mongoose.Schema(
   },
   { _id: false }
 );
+
+const timeSlotSchema = new mongoose.Schema(
+  {
+    start: {
+      type: String,
+      required: true,
+      match: [/^([01]\d|2[0-3]):[0-5]\d$/, 'Invalid start time format, expected HH:MM'],
+    },
+    end: {
+      type: String,
+      required: true,
+      match: [/^([01]\d|2[0-3]):[0-5]\d$/, 'Invalid end time format, expected HH:MM'],
+    },
+  },
+  { _id: false }
+);
+const availabilityDaySchema = new mongoose.Schema(
+  {
+    day: {
+      type: String,
+      required: true,
+      enum: ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
+    },
+    slots: {
+      type: [timeSlotSchema],
+      default: [],
+    },
+  },
+  { _id: false }
+);
+
 const teacherSchema = new mongoose.Schema(
   {
     bio: { type: String },
     certificates: [certificateSchema],
     specialties: [String],
-  programPreference: [
-  {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'ProgramType',
-    set: (value) => {
-      // If the value is already an array, convert each item to ObjectId
-      if (Array.isArray(value)) {
-        return value.map((v) => new mongoose.Types.ObjectId(v));
-      }
-      // single value case
-      return new mongoose.Types.ObjectId(value);
-    }
-  }
-],
-
-    hourly_rate: { type: Number },
-    availabilitySchedule: [
+    programPreference: [
       {
-        day: {
-          type: String,
-         // enum: ['saturday', 'sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'ProgramType',
+        set: (value) => {
+          if (!value) return value;
+          // If the value is already an array, convert each item to ObjectId
+          if (Array.isArray(value)) {
+            return value.map((v) => {
+              if (v instanceof mongoose.Types.ObjectId) return v;
+              if (typeof v === 'object' && v._id) return v._id;
+              return new mongoose.Types.ObjectId(v);
+            });
+          }
+          if (value instanceof mongoose.Types.ObjectId) return value;
+          if (typeof value === 'object' && value._id) return value._id;
+          return new mongoose.Types.ObjectId(value);
         },
-        slots: [
-          {
-            start: { type: String, required: true }, // "14:00"
-            end: { type: String, required: true }, // "15:30"
-          },
-        ],
       },
     ],
+
+    hourly_rate: { type: Number },
+    availabilitySchedule: {
+      type: [availabilityDaySchema],
+      default: [],
+    },
+
     fulfilledMinutes: {
       type: Number,
       default: 0, // increases after each completed session
@@ -87,13 +115,17 @@ const userSchema = new mongoose.Schema(
       unique: true,
       lowercase: true,
     },
+
     phone: String,
+
     firebaseUid: {
       type: String,
       unique: true,
       index: true,
       sparse: true, // allows non-firebase users to exist
     },
+
+    notificationToken: String,
 
     role: {
       type: String,
@@ -126,24 +158,14 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-// Encrypt password before saving
-// userSchema.pre('save', async function (next) {
-//   if (!this.isModified('password')) {
-//     return next();
-//   }
-//   this.password = await bcrypt.hash(this.password, 12);
-//   next();
-// });
-
 function autoPopulateProgramPref(next) {
-  this.populate("teacherProfile.programPreference");
+  this.populate('teacherProfile.programPreference');
   next();
 }
 
-userSchema.pre("find", autoPopulateProgramPref);
-userSchema.pre("findOne", autoPopulateProgramPref);
-userSchema.pre("findById", autoPopulateProgramPref);
+userSchema.pre('find', autoPopulateProgramPref);
+userSchema.pre('findOne', autoPopulateProgramPref);
+userSchema.pre('findById', autoPopulateProgramPref);
 
 const User = mongoose.model('User', userSchema);
-// const TeacherSchema = mongoose.model('Teahcer',teacherSchema)
 module.exports = User;

@@ -30,10 +30,10 @@ exports.updateUser = asyncHandler(async (req, res, next) => {
   const user = req.user;
 
   // Debug logging
-  console.log('=== UPDATE USER DEBUG ===');
-  console.log('req.uploadedFiles:', req.uploadedFiles);
-  console.log('profile_picture:', req.uploadedFiles?.profile_picture);
-  console.log('req.body:', req.body);
+  // console.log('=== UPDATE USER DEBUG ===');
+  // console.log('req.uploadedFiles:', req.uploadedFiles);
+  // console.log('profile_picture:', req.uploadedFiles?.profile_picture);
+  // console.log('req.body:', req.body);
 
   // if (req.body.password) {
   //   return next(
@@ -91,41 +91,82 @@ exports.updateUser = asyncHandler(async (req, res, next) => {
       current_level: current_level ?? user.studentProfile?.current_level ?? '',
     };
   }
-  if (user.role === 'teacher') {
-    const { bio, certificates, specialties, hourly_rate, availabilitySchedule } = req.body;
+if (user.role === "teacher") {
+    const { bio, specialties, hourly_rate, availabilitySchedule, certificates } =
+      req.body;
+
+    // -----------------------------
+    // 1️⃣ Parse availabilitySchedule correctly
+    // -----------------------------
     let parsedSchedule = user.teacherProfile?.availabilitySchedule ?? [];
-    if (availabilitySchedule && Array.isArray(availabilitySchedule)) {
-      parsedSchedule = availabilitySchedule.map((item) => ({
-        day: item.day,
-        slots: [
-          {
-            start: item.start,
-            end: item.end,
-          },
-        ],
-      }));
+
+    if (availabilitySchedule) {
+      let scheduleData = availabilitySchedule;
+
+      // If string in form-data → parse it
+      if (typeof availabilitySchedule === "string") {
+        try {
+          scheduleData = JSON.parse(availabilitySchedule);
+        } catch (err) {
+          return next(
+            new ApiError("Invalid availabilitySchedule JSON format", 400)
+          );
+        }
+      }
+
+      // Convert into valid format
+      if (Array.isArray(scheduleData)) {
+        parsedSchedule = scheduleData.map((item) => ({
+          day: item.day,
+          slots: Array.isArray(item.slots)
+            ? item.slots // already correct
+            : [
+                {
+                  start: item.start,
+                  end: item.end,
+                },
+              ],
+        }));
+      }
     }
-     updateData.teacherProfile = {
-    bio: bio ?? user.teacherProfile?.bio ?? '',
-    specialties: specialties
+
+    // -----------------------------
+    // 2️⃣ Parse specialties safely
+    // -----------------------------
+    const parsedSpecialties = specialties
       ? Array.isArray(specialties)
         ? specialties
-        : String(specialties).split(',').map((v) => v.trim())
-      : user.teacherProfile?.specialties ?? [],
-    hourly_rate: hourly_rate ?? user.teacherProfile?.hourly_rate ?? 0,
+        : String(specialties).split(",").map((v) => v.trim())
+      : user.teacherProfile?.specialties ?? [];
 
-    availabilitySchedule: parsedSchedule,
+    // -----------------------------
+    // 3️⃣ Certificates handling
+    // -----------------------------
+    let parsedCertificates = user.teacherProfile?.certificates ?? [];
 
-    certificates:
-      req.uploadedFiles?.certificates?.length > 0
-        ? req.uploadedFiles.certificates.map((cert) => cert.fileUrl)
-        : certificates
-          ? Array.isArray(certificates)
-            ? certificates
-            : String(certificates).split(',').map((v) => v.trim())
-          : user.teacherProfile?.certificates ?? [],
-  };
-}
+    if (req.uploadedFiles?.certificates?.length > 0) {
+      parsedCertificates = req.uploadedFiles.certificates.map(
+        (c) => c.fileUrl
+      );
+    } else if (certificates) {
+      parsedCertificates = Array.isArray(certificates)
+        ? certificates
+        : String(certificates).split(",").map((v) => v.trim());
+    }
+
+    // -----------------------------
+    // 4️⃣ Build final teacher profile
+    // -----------------------------
+    updateData.teacherProfile = {
+      bio: bio ?? user.teacherProfile?.bio ?? "",
+      specialties: parsedSpecialties,
+      hourly_rate: hourly_rate ?? user.teacherProfile?.hourly_rate ?? 0,
+      availabilitySchedule: parsedSchedule,
+      certificates: parsedCertificates,
+      programPreference: user.teacherProfile?.programPreference ?? [], // do NOT overwrite
+    };
+  }
+
 
   const updatedUser = await User.findByIdAndUpdate(user._id, updateData, {
     new: true,

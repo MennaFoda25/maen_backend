@@ -1,6 +1,28 @@
 const mongoose = require('mongoose');
 const crypto = require('crypto');
 
+const perferredTimeSchema = new mongoose.Schema(
+  {
+    day: {
+      type: String,
+      required: true,
+      enum: ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
+    },
+    start: {
+      type: String,
+      required: true,
+      match: [/^([01]\d|2[0-3]):[0-5]\d$/, 'Invalid start time format, expected HH:MM'],
+    },
+
+    end: {
+      type: String,
+      required: true,
+      match: [/^([01]\d|2[0-3]):[0-5]\d$/, 'Invalid end time format, expected HH:MM'],
+    },
+  },
+  { _id: false }
+);
+
 const correctionProgramSchema = new mongoose.Schema(
   {
     student: {
@@ -10,8 +32,8 @@ const correctionProgramSchema = new mongoose.Schema(
     },
 
     // 🎯 NEW — To match your hardcoded types
-    programTypeId: { type: Number, default: 1 }, // always 1
-    programTypeKey: { type: String, default: 'correction' },
+    //  programTypeId: { type: Number, default: 1 }, // always 1
+    programTypeKey: { type: String, default: 'CorrectionProgram' },
 
     teacher: {
       type: mongoose.Schema.ObjectId,
@@ -47,16 +69,10 @@ const correctionProgramSchema = new mongoose.Schema(
       enum: [15, 30, 45, 60],
       required: [true, 'Session duration is required'],
     },
-     preferredTimes: [
-      {
-        day: {
-          type: String,
-          enum: ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
-        },
-        start: String, // e.g. "18:00"
-      },
-    ],
-    //days:[String],
+    preferredTimes: {
+      type: [perferredTimeSchema],
+      validate: [(v) => Array.isArray(v) && v.length > 0, 'Preferred times are required'],
+    },
     planName: {
       type: String,
       required: true,

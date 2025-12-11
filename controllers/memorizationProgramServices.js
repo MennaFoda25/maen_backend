@@ -5,6 +5,7 @@ const Session = require('../models/sessionModel');
 const { createTrialSession, generatePlanSessionsForProgram } = require('./sessionServices');
 const User = require('../models/userModel');
 const factory = require('./handlerFactory');
+const ProgramType = require('../models/programTypeModel');
 
 const toArray = (value) => {
   if (!value) return [];
@@ -35,11 +36,23 @@ exports.createMemorizationProgram = asyncHandler(async (req, res, next) => {
     return next(new ApiError('only active student can create a memorization program', 403));
   }
 
-  // Auto-extract days from preferredTimes
-  let days = [];
+  let preferredTimes = toArray(req.body.preferredTimes);
 
-  if (Array.isArray(req.body.preferredTimes)) {
-    days = req.body.preferredTimes.map((pt) => pt.day).filter(Boolean); // remove null/undefined
+  const invalid = preferredTimes.some(
+    (pt) =>
+      !pt ||
+      !pt.day ||
+      !pt.start ||
+      !pt.end ||
+      typeof pt.day !== 'string' ||
+      !/^([01]\d|2[0-3]):[0-5]\d$/.test(pt.start) ||
+      !/^([01]\d|2[0-3]):[0-5]\d$/.test(pt.end)
+  );
+
+  if (invalid || preferredTimes.length === 0) {
+    return next(
+      new ApiError('preferredTimes must be an array of objects: { day, start, end }', 400)
+    );
   }
 
   // if (!days.length) {
@@ -50,7 +63,6 @@ exports.createMemorizationProgram = asyncHandler(async (req, res, next) => {
     firebaseUid: student.firebaseUid,
     student: student._id,
     //trackType: req.body.trackType,
-    teacher: req.body.teacher|| req.body.assignedTeacher,
     programType: req.body.programType,
     planName: req.body.planName,
     memorizationDirection: req.body.memorizationDirection,
@@ -58,8 +70,7 @@ exports.createMemorizationProgram = asyncHandler(async (req, res, next) => {
     weeklySessions: req.body.weeklySessions,
     sessionDuration: req.body.sessionDuration,
     packageDuration: req.body.packageDuration,
-    preferredTimes: toArray(req.body.preferredTimes),
-    days,
+    preferredTimes: preferredTimes,
     memorizationRange: {
       fromSurah: req.body.fromSurah,
       fromAyah: req.body.fromAyah,
@@ -77,44 +88,59 @@ exports.createMemorizationProgram = asyncHandler(async (req, res, next) => {
     revisionType: req.body.revisionType, // enum: ['daily', 'weekly', 'monthly']
     totalPages: req.body.totalPages,
     completedPages: req.body.completedPages || 0,
+    trialSession: req.body.trialSession,
 
     nextTarget: req.body.nextTarget,
   });
 
-  const teacher = await User.findById(newProgram.teacher);
+  const program = await MemorizationProgram.findById(newProgram._id);
+  if (!program) return next(new ApiError('Program could not be created', 500));
+
+  const programModel = program.programTypeKey;
+
+  // STEP 3 — Validate ProgramType exists
+  const programType = await ProgramType.findOne({ key: programModel });
+  if (!programType) {
+    console.log('❌ ProgramType not found for key:', programModel); // debugging
+    return next(new ApiError('ProgramType not found for this program', 404));
+  }
 
   let createdSessions = [];
-  if (teacher) {
-    try {
-      createdSessions = await generatePlanSessionsForProgram(newProgram, teacher);
-    } catch (err) {
-      console.error('Error generating plan sessions:', err.message);
-      // Continue even if session generation fails - the program is created
-    }
-  }
+
+  // if (teacher) {
+  //   try {
+  //     createdSessions = await generatePlanSessionsForProgram(newProgram, teacher);
+  //   } catch (err) {
+  //     console.error('Error generating plan sessions:', err.message);
+  //     // Continue even if session generation fails - the program is created
+  //   }
+  // }
 
   let populatedTrial = null;
-  if (req.body.trialSession && req.body.teacher) {
-    const trial = await createTrialSession({
-      programId: newProgram._id,
-      programModel: 'MemorizationProgram',
-      studentId: req.user._id,
-      teacherId: newProgram.teacher,
-      preferredTimes: newProgram.preferredTimes,
-      days: newProgram.days,
-    });
 
-    populatedTrial = (await trial)
-      ? await Session.findById(trial._id)
-          .populate('student', 'name email')
-          .populate('teacher', 'name email')
-      : null;
-  }
+  // if (req.body.trialSession && req.body.teacher) {
+  //   const trial = await createTrialSession({
+  //     programId: newProgram._id,
+  //     programModel: 'MemorizationProgram',
+  //     studentId: req.user._id,
+  //     teacherId: newProgram.teacher,
+  //     preferredTimes: newProgram.preferredTimes,
+  //     days: newProgram.days,
+  //   });
+
+  //   populatedTrial = (await trial)
+  //     ? await Session.findById(trial._id)
+  //         .populate('student', 'name email')
+  //         .populate('teacher', 'name email')
+  //     : null;
+  // }
 
   // Populate for response
-  const populatedProgram = await MemorizationProgram.findById(newProgram._id)
-    .populate('student', 'name email')
-    .populate('teacher', 'name email');
+  const populatedProgram = await MemorizationProgram.findById(newProgram._id).populate(
+    'student',
+    'name email'
+  );
+  // .populate('teacher', 'name email');
 
   res.status(201).json({
     status: 'success',

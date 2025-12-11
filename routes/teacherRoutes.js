@@ -29,7 +29,7 @@ router.get('/Mytrials', allowedTo('teacher'), getAssignedTeacherTrials);
 router.route('/brief').get(getAllTeachersShortly);
 router.get('/trials', allowedTo('admin'), getAllFreeTrials);
 router.get('/top', getTopTeachers);
-router.get('/program', getProgramTeachers);
+//router.get('/program', getProgramTeachers);
 router.get('/all', getAllActiveTeachers);
 router.patch(
   '/assign-program/:teacherId',

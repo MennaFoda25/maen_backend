@@ -7,8 +7,8 @@ module.exports = {
   },
   servers: [
     {
-     // url: 'http://localhost:3000/api/v1',
-      url: 'https://maen-backend.onrender.com/api/v1',
+      //url: 'http://localhost:3000/api/v1',
+       url: 'https://maen-backend.onrender.com/api/v1',
       // description: 'local dev server',
       description:
         process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server',
@@ -2072,6 +2072,62 @@ Requires Firebase authentication.
           },
         },
       },
+      delete: {
+        tags: ['Programs'],
+        summary: 'Delete a program owned by the logged-in student',
+        description: `
+           Allows the authenticated student (or parent in child programs) to delete ONLY programs they own.`,
+        security: [{ FirebaseUidAuth: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            description: 'Program ID to delete',
+            schema: { type: 'string', example: '64afc12345ed909ab12cd345' },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Program deleted successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string', example: 'success' },
+                    message: { type: 'string', example: 'Program deleted successfully' },
+                  },
+                },
+              },
+            },
+          },
+          403: {
+            description: 'User is not allowed to delete this program (not owner)',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          404: {
+            description: 'Program not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          401: {
+            description: 'Unauthorized — authentication failed',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
     },
     '/programs/student/myPrograms': {
       get: {
@@ -2120,6 +2176,244 @@ Returns all programs belonging to the authenticated student:
 
           401: {
             description: 'Unauthorized - missing or invalid Firebase token',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/programs/assignTeacher/{id}': {
+      patch: {
+        tags: ['Programs'],
+        summary: 'Assign a teacher to a program and generate trial + plan sessions',
+        description: `
+Assigns a teacher to a program (Correction, Memorization, or Child).
+Automatically generates:
+- Trial session (if enabled)
+- Full program plan sessions (if not generated before)
+`,
+        security: [{ FirebaseUidAuth: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            description: 'Program ID',
+            schema: { type: 'string' },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['teacherId'],
+                properties: {
+                  teacherId: {
+                    type: 'string',
+                    example: '6915e2350b32ecdcf4bacb12',
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Teacher assigned and sessions generated successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string', example: 'success' },
+                    message: {
+                      type: 'string',
+                      example: 'Teacher assigned successfully. Trial + plan sessions generated.',
+                    },
+                    teacherId: { type: 'string' },
+                    trialSession: { type: 'object', nullable: true },
+                    createdSessionsCount: { type: 'number' },
+                    createdSessions: {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/Session' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          400: {
+            description: 'Invalid request (missing teacherId or invalid data)',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          404: {
+            description: 'Program or Teacher not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/programs/available/{id}': {
+      get: {
+        tags: ['Programs'],
+        summary: 'Get teachers whose availability matches the program preferred times',
+        description: `
+Returns teachers whose weekly availability matches the program's preferredTimes.
+Works for:
+- Correction Programs
+- Memorization Programs
+- Child Programs
+`,
+        security: [{ FirebaseUidAuth: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            description: 'Program ID',
+            schema: { type: 'string' },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Available teachers retrieved successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string', example: 'success' },
+                    count: { type: 'number' },
+                    programId: { type: 'string' },
+                    programModel: { type: 'string' },
+                    preferredTimes: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          day: { type: 'string' },
+                          start: { type: 'string' },
+                          end: { type: 'string' },
+                        },
+                      },
+                    },
+                    teachers: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          _id: { type: 'string' },
+                          name: { type: 'string' },
+                          profile_picture: { type: 'string' },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          400: {
+            description: 'PreferredTimes missing or invalid',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          404: {
+            description: 'Program not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          500: {
+            description: 'ProgramType not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/programs/student/{id}': {
+      delete: {
+        tags: ['Programs'],
+        summary: 'Delete a program owned by the logged-in student',
+        description: `
+    Allows the authenticated student (or parent in child programs) to delete only programs they own.
+
+    Supported program types:
+    - Memorization Program
+    - Correction Program
+    - Child Memorization Program
+
+    The API validates ownership before deletion.
+    `,
+        security: [{ FirebaseUidAuth: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            description: 'Program ID to delete',
+            schema: { type: 'string', example: '64afc12345ed909ab12cd345' },
+          },
+        ],
+
+        responses: {
+          200: {
+            description: 'Program deleted successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string', example: 'success' },
+                    message: { type: 'string', example: 'Program deleted successfully' },
+                  },
+                },
+              },
+            },
+          },
+
+          403: {
+            description: 'User is not allowed to delete this program (not owner)',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+
+          404: {
+            description: 'Program not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+
+          401: {
+            description: 'Unauthorized — authentication failed',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/ErrorResponse' },

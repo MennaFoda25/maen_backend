@@ -224,7 +224,15 @@ exports.getProgramTypes = asyncHandler(async (req, res, next) => {
 //   return trial;
 // });
 
-exports.getAllFreeTrials = factory.getAll(Session);
+exports.getAllFreeTrials = asyncHandler(async(req,res,next)=>{
+  const freeTrials = await Session.find({type:'trial'}).populate('program','programTypeKey').populate('student','name email').populate('teacher','name email');
+
+res.status(200).json({
+    status:'success',
+    count:freeTrials.length,
+    data:freeTrials,
+  });
+});
 
 exports.getTopTeachers = asyncHandler(async (req, res, next) => {
   // 1) fetch all teachers with ratings
@@ -321,9 +329,10 @@ exports.getTeacherSchedulesById = asyncHandler(async (req, res, next) => {
 
 exports.deleteProgram = asyncHandler(async (req, res, next) => {
   const programId = req.params.id;
-  //const {role, _id} = req.user;
+  const studentId = req.user._id;
 
-  let program =
+  // Try all models
+  const program =
     (await CorrectionProgram.findById(programId)) ||
     (await MemorizationProgram.findById(programId)) ||
     (await ChildProgram.findById(programId));
@@ -331,10 +340,21 @@ exports.deleteProgram = asyncHandler(async (req, res, next) => {
   if (!program) {
     return next(new ApiError('Program not found', 404));
   }
+
+  // Ownership validation depending on model
+  const isOwner =
+    program.student?.toString() === studentId.toString() ||
+    program.parent?.toString() === studentId.toString();
+
+  if (!isOwner) {
+    return next(new ApiError('You are not allowed to delete this program', 403));
+  }
+
+  // Determine correct model to delete
   let Model;
-  if (program.programTypeKey === 'correction') Model = CorrectionProgram;
-  else if (program.programTypeKey === 'memorization') Model = MemorizationProgram;
-  else if (program.programTypeKey === 'child_memorization') Model = ChildProgram;
+  if (program.programTypeKey === 'CorrectionProgram') Model = CorrectionProgram;
+  else if (program.programTypeKey === 'MemorizationProgram') Model = MemorizationProgram;
+  else if (program.programTypeKey === 'ChildMemorizationProgram') Model = ChildProgram;
   else return next(new ApiError('Unknown program type', 400));
 
   await Model.findByIdAndDelete(programId);
@@ -345,454 +365,6 @@ exports.deleteProgram = asyncHandler(async (req, res, next) => {
   });
 });
 
-// async function generatePlanSessionsLogic(program, teacher, programModel) {
-//   const schedule = teacher?.teacherProfile?.availabilitySchedule || [];
-
-//   const weeklySessions = program.weeklySessions;
-//   const duration = program.sessionDuration; // minutes
-//   const weeks = program.packageDuration * 4; // e.g. 3 months → 12 weeks
-//   const totalSessions = weeklySessions * weeks;
-//   const programId = program._id;
-
-//   // 1) Validate preferredTimes
-//   if (!Array.isArray(program.preferredTimes) || program.preferredTimes.length === 0) {
-//     throw new ApiError('Program must have preferred times specified', 400);
-//   }
-
-//   // 2) Build normalized preferred array: [{ day, start }]
-//   let preferred = [];
-
-//   if (
-//     programModel === 'CorrectionProgram' ||
-//     programModel === 'MemorizationProgram' ||
-//     programModel === 'ChildMemorizationProgram'
-//   ) {
-//     preferred = program.preferredTimes
-//       .filter((t) => t?.day && t?.start)
-//       .map((t) => {
-//         const rec = schedule.find(
-//           (d) => d.day && d.day.toLowerCase() === String(t.day).toLowerCase()
-//         );
-
-//         if (!rec || !Array.isArray(rec.slots) || rec.slots.length === 0) {
-//           console.log(`❌ No availability for teacher on ${t.day}`);
-//           return null;
-//         }
-
-//         console.log(`✅ Using preferred time ${t.day}@${t.start}`);
-//         return {
-//           day: t.day,
-//           start: t.start,
-//         };
-//       })
-//       .filter(Boolean);
-//   }
-
-//   if (!preferred.length) {
-//     const requiredDays = program.preferredTimes
-//       .map((p) => `${p.day}@${p.start}`)
-//       .join(', ');
-//     const availableDays = schedule.map((d) => d.day).join(', ') || 'NONE';
-
-//     throw new ApiError(
-//       `${programModel} has no valid preferred times matching teacher availability. ` +
-//         `Required: [${requiredDays}], Teacher available: [${availableDays}]`,
-//       400
-//     );
-//   }
-
-//   // 3) Helper: compute date for given weekday + time + week offset
-//   const computeDate = (day, time, weekOffset) => {
-//     const map = {
-//       sunday: 0,
-//       monday: 1,
-//       tuesday: 2,
-//       wednesday: 3,
-//       thursday: 4,
-//       friday: 5,
-//       saturday: 6,
-//     };
-//     const today = new Date();
-//     const target = map[day.toLowerCase()];
-//     const diff = (target + 7 - today.getDay()) % 7;
-
-//     const d = new Date(today);
-//     d.setDate(today.getDate() + diff + weekOffset * 7);
-
-//     const [h, m] = time.split(':').map(Number);
-//     d.setHours(h, m, 0, 0);
-
-//     return d;
-//   };
-
-//   const created = [];
-
-//   console.log(
-//     `📊 Plan: Create ${totalSessions} total sessions (${weeklySessions}/week for ${weeks} weeks)`
-//   );
-//   console.log(`📊 Preferred times/days:`, preferred);
-
-//   // 4) Main generation loop: week by week
-//   for (let w = 0; w < weeks && created.length < totalSessions; w++) {
-//     let createdThisWeek = 0;
-
-//     for (const pref of preferred) {
-//       if (createdThisWeek >= weeklySessions || created.length >= totalSessions) break;
-
-//       const dayRecord = schedule.find(
-//         (d) => d.day && d.day.toLowerCase() === String(pref.day).toLowerCase()
-//       );
-//       if (!dayRecord || !Array.isArray(dayRecord.slots) || !dayRecord.slots.length) {
-//         console.log(`❌ Week ${w + 1}: teacher has no slots on ${pref.day}`);
-//         continue;
-//       }
-
-//       // Session start based on student's preferred time, NOT slot.start
-//       const startDate = computeDate(pref.day, pref.start, w);
-//       const endDate = new Date(startDate.getTime() + duration * 60000);
-
-//       // Check if ANY slot covers [pref.start → pref.start+duration]
-//       const fitsSomeSlot = dayRecord.slots.some((slot) => {
-//         if (!slot.start || !slot.end) return false;
-
-//         const [hs, ms] = slot.start.split(':').map(Number);
-//         const [he, me] = slot.end.split(':').map(Number);
-
-//         const slotStart = new Date(startDate);
-//         slotStart.setHours(hs, ms, 0, 0);
-//         const slotEnd = new Date(startDate);
-//         slotEnd.setHours(he, me, 0, 0);
-
-//         const fits =
-//           slotStart.getTime() <= startDate.getTime() && slotEnd.getTime() >= endDate.getTime();
-
-//         console.log(
-//           `   ⏱️ Check slot ${slot.start}-${slot.end} for ${pref.start} (${duration}m) -> fits=${fits}`
-//         );
-
-//         return fits;
-//       });
-
-//       if (!fitsSomeSlot) {
-//         console.log(
-//           `❌ Week ${w + 1}: no slot on ${pref.day} can host ${duration}min at ${pref.start}`
-//         );
-//         continue;
-//       }
-
-//       // 5) Create session at the student's preferred time
-//       const newSession = await Session.create({
-//         program: programId,
-//         programModel,
-//         student: program.student || program.parent,
-//         teacher: program.teacher,
-//         duration,
-//         type: 'program',
-//         status: 'scheduled',
-//         scheduledAtDate: startDate,
-//         scheduledAt: [{ day: pref.day, slots: [{ start: pref.start }] }],
-//         meetingId: crypto.randomBytes(8).toString('hex'),
-//         meetingLink: program.meetingLink || null,
-//       });
-
-//       created.push(newSession);
-//       createdThisWeek++;
-
-//       console.log(
-//         `✅ Created session #${created.length}/${totalSessions} for week ${
-//           w + 1
-//         } on ${pref.day} at ${pref.start}`
-//       );
-//     }
-//   }
-
-//   // ❗ DO NOT mutate teacher availability here – it’s a weekly template
-//   console.log(`✅ Total sessions created: ${created.length}/${totalSessions}`);
-//   return created;
-// }
-// async function generatePlanSessionsLogic(program, teacher, programModel, hasTrial) {
-//   const schedule = teacher.teacherProfile?.availabilitySchedule || [];
-
-//   const weekly = program.weeklySessions;
-//   const duration = program.sessionDuration;
-//   const totalWeeks = program.packageDuration * 4;
-//   const totalSessions = weekly * totalWeeks;
-
-//   const pref = program.preferredTimes[0];
-//   const programId = program._id;
-
-//   if (!pref) throw new ApiError('Program preferredTimes missing', 400);
-
-//   // --- SHIFT START WEEK IF TRIAL EXISTS ---
-//   const startWeekOffset = hasTrial ? 1 : 0;
-
-//   // Find matching teacher slot
-//   const dayRecord = schedule.find((d) => d.day.toLowerCase() === pref.day.toLowerCase());
-//   if (!dayRecord || !dayRecord.slots?.length) {
-//     throw new ApiError(`Teacher unavailable on ${pref.day}`, 400);
-//   }
-
-//   const [ph, pm] = pref.start.split(':').map(Number);
-
-//   const fits = dayRecord.slots.some((slot) => {
-//     const [sh, sm] = slot.start.split(':').map(Number);
-//     const [eh, em] = slot.end.split(':').map(Number);
-
-//     const prefMin = ph * 60 + pm;
-//     const slotStart = sh * 60 + sm;
-//     const slotEnd = eh * 60 + em;
-
-//     return prefMin >= slotStart && prefMin + duration <= slotEnd;
-//   });
-
-//   if (!fits) {
-//     throw new ApiError(`Teacher cannot host a ${duration}min session at ${pref.start}`, 400);
-//   }
-
-//   const computeDate = (day, time, weekOffset) => {
-//     const map = {
-//       sunday: 0,
-//       monday: 1,
-//       tuesday: 2,
-//       wednesday: 3,
-//       thursday: 4,
-//       friday: 5,
-//       saturday: 6,
-//     };
-
-//     const today = new Date();
-//     const target = map[day.toLowerCase()];
-//     const diff = (target + 7 - today.getDay()) % 7;
-
-//     const d = new Date(today);
-//     d.setDate(today.getDate() + diff + weekOffset * 7);
-
-//     const [h, m] = time.split(':');
-//     d.setHours(Number(h), Number(m), 0, 0);
-
-//     return d;
-//   };
-
-//   const created = [];
-
-//   for (let i = 0; i < totalWeeks; i++) {
-//     const actualWeek = i + startWeekOffset;
-//     const startDate = computeDate(pref.day, pref.start, actualWeek);
-
-//     const session = await Session.create({
-//       program: programId,
-//       programModel,
-//       student: program.student,
-//       teacher: program.teacher,
-//       duration,
-//       type: 'program',
-//       status: 'scheduled',
-//       scheduledAtDate: startDate,
-//       scheduledAt: [{ day: pref.day, slots: [{ start: pref.start }] }],
-//       meetingId: crypto.randomBytes(8).toString('hex'),
-//       meetingLink: program.meetingLink || null,
-//     });
-
-//     created.push(session);
-//   }
-
-//   // --- UPDATE TEACHER SCHEDULE (remove booked time ONCE) ---
-//   const [startHour, startMin] = pref.start.split(':').map(Number);
-//   const endDate = new Date();
-//   endDate.setHours(startHour, startMin + duration);
-
-//   removeBookedTimeFromSlots(
-//     dayRecord,
-//     new Date(0, 0, 0, startHour, startMin),
-//     new Date(0, 0, 0, startHour, startMin + duration)
-//   );
-//   teacher.teacherProfile.availabilitySchedule = schedule;
-//   await teacher.save();
-
-//   return created;
-// }
-
-// exports.assignTeacherToProgram = asyncHandler(async (req, res, next) => {
-//   const programId = req.params.id;
-//   const teacherId = req.body.teacherId;
-
-//   if (!teacherId) {
-//     return next(new ApiError("teacherId is required", 400));
-//   }
-
-//   // 1️⃣ Find program (any type)
-//   const result = await findProgramById(programId);
-//   if (!result) return next(new ApiError("Program not found", 404));
-
-//   const { model, program } = result;
-//   const programModel = program.constructor.modelName; // e.g. "CorrectionProgram"
-
-//   // 2️⃣ Assign teacher
-//   const teacher = await User.findById(teacherId);
-//   if (!teacher || teacher.status !== "active") {
-//     return next(new ApiError("Teacher not found or inactive", 404));
-//   }
-
-//   program.teacher = teacherId;
-//   await program.save(); // Save program with assigned teacher
-
-//   let trialSessionDoc = null;
-
-//   // 3️⃣ Create trial session ONLY IF:
-//   // - Program requires trial
-//   // - No existing trial session exists
-//   if (program.trialSession === true) {
-//     const existingTrial = await Session.findOne({
-//       program: programId,
-//       type: "trial",
-//     });
-
-//     if (!existingTrial) {
-//       const pref = program.preferredTimes?.[0];
-//       if (!pref) {
-//         return next(new ApiError("No preferred time found for program", 400));
-//       }
-
-//       const startDate = computeNextDate(pref.day, pref.start);
-
-//       trialSessionDoc = await Session.create({
-//         program: programId,
-//         programModel,
-//         student: program.student,
-//         teacher: teacherId,
-//         type: "trial",
-//         duration: 15,
-//         status: "scheduled",
-//         scheduledAtDate: startDate,
-//         scheduledAt: [
-//           {
-//             day: pref.day,
-//             slots: [{ start: pref.start }],
-//           },
-//         ],
-//         meetingId: crypto.randomBytes(8).toString("hex"),
-//         meetingLink: program.meetingLink || null,
-//       });
-//     }
-//   }
-
-//   // 4️⃣ Generate normal plan sessions (only ONCE ever)
-//   const existingProgramSessions = await Session.find({
-//     program: programId,
-//     type: "program",
-//   });
-
-//   let createdSessions = [];
-
-//   if (existingProgramSessions.length === 0) {
-//     createdSessions = await generatePlanSessionsLogic(program, teacher, programModel);
-//   }
-
-//   res.status(200).json({
-//     status: "success",
-//     message: "Teacher assigned successfully. Trial + plan sessions generated.",
-//     teacherId,
-//     trialSession: trialSessionDoc,
-//     createdSessionsCount: createdSessions.length,
-//     createdSessions,
-//   });
-// });
-
-// async function generatePlanSessionsLogic(program, teacher, programModel, hasTrial) {
-//   const schedule = teacher.teacherProfile?.availabilitySchedule || [];
-
-//   const weekly = program.weeklySessions;
-//   const duration = program.sessionDuration;
-//   const totalWeeks = program.packageDuration * 4;
-//   const totalSessions = weekly * totalWeeks;
-
-//   const pref = program.preferredTimes[0];
-//   const programId = program._id;
-
-//   if (!pref) throw new ApiError("Program preferredTimes missing", 400);
-
-//   // --- SHIFT START WEEK IF TRIAL EXISTS ---
-//   const startWeekOffset = hasTrial ? 1 : 0;
-
-//   // Find matching teacher slot
-//   const dayRecord = schedule.find(d => d.day.toLowerCase() === pref.day.toLowerCase());
-//   if (!dayRecord || !dayRecord.slots?.length) {
-//     throw new ApiError(`Teacher unavailable on ${pref.day}`, 400);
-//   }
-
-//   const [ph, pm] = pref.start.split(":").map(Number);
-
-//   const fits = dayRecord.slots.some(slot => {
-//     const [sh, sm] = slot.start.split(":").map(Number);
-//     const [eh, em] = slot.end.split(":").map(Number);
-
-//     const prefMin = ph * 60 + pm;
-//     const slotStart = sh * 60 + sm;
-//     const slotEnd = eh * 60 + em;
-
-//     return prefMin >= slotStart && (prefMin + duration) <= slotEnd;
-//   });
-
-//   if (!fits) {
-//     throw new ApiError(
-//       `Teacher cannot host a ${duration}min session at ${pref.start}`,
-//       400
-//     );
-//   }
-
-//   const computeDate = (day, time, weekOffset) => {
-//     const map = {
-//       sunday: 0, monday: 1, tuesday: 2, wednesday: 3,
-//       thursday: 4, friday: 5, saturday: 6
-//     };
-
-//     const today = new Date();
-//     const target = map[day.toLowerCase()];
-//     const diff = (target + 7 - today.getDay()) % 7;
-
-//     const d = new Date(today);
-//     d.setDate(today.getDate() + diff + weekOffset * 7);
-
-//     const [h, m] = time.split(":");
-//     d.setHours(Number(h), Number(m), 0, 0);
-
-//     return d;
-//   };
-
-//   const created = [];
-
-//   for (let i = 0; i < totalWeeks; i++) {
-//     const actualWeek = i + startWeekOffset;
-//     const startDate = computeDate(pref.day, pref.start, actualWeek);
-
-//     const session = await Session.create({
-//       program: programId,
-//       programModel,
-//       student: program.student,
-//       teacher: program.teacher,
-//       duration,
-//       type: "program",
-//       status: "scheduled",
-//       scheduledAtDate: startDate,
-//       scheduledAt: [{ day: pref.day, slots: [{ start: pref.start }] }],
-//       meetingId: crypto.randomBytes(8).toString("hex"),
-//       meetingLink: program.meetingLink || null,
-//     });
-
-//     created.push(session);
-//   }
-
-//   // --- UPDATE TEACHER SCHEDULE (remove booked time ONCE) ---
-//   const [startHour, startMin] = pref.start.split(":").map(Number);
-//   const endDate = new Date();
-//   endDate.setHours(startHour, startMin + duration);
-
-//   removeBookedTimeFromSlots(dayRecord, new Date(0,0,0,startHour,startMin), new Date(0,0,0,startHour,startMin + duration));
-//   teacher.teacherProfile.availabilitySchedule = schedule;
-//   await teacher.save();
-
-//   return created;
-// }
 
 async function generatePlanSessionsLogic(program, teacher, programModel) {
   const schedule = teacher?.teacherProfile?.availabilitySchedule || [];

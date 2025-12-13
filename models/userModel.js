@@ -125,7 +125,10 @@ const userSchema = new mongoose.Schema(
       sparse: true, // allows non-firebase users to exist
     },
 
-    notificationToken: String,
+    notificationToken: {
+      type:String,
+      default:null
+    },
 
     role: {
       type: String,

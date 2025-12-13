@@ -10,7 +10,7 @@ const {
 } = require('../controllers/teacherRequestService');
 const {
   getAssignedTeacherTrials,
-  trialSessionAccept,
+ // trialSessionAccept,
   getTeachersByProgramType,
 } = require('../controllers/correctionProgramServices');
 const { allowedTo } = require('../controllers/authServices');

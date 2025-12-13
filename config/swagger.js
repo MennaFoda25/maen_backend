@@ -7,7 +7,7 @@ module.exports = {
   },
   servers: [
     {
-      //url: 'http://localhost:3000/api/v1',
+    //  url: 'http://localhost:3000/api/v1',
        url: 'https://maen-backend.onrender.com/api/v1',
       // description: 'local dev server',
       description:
@@ -673,34 +673,62 @@ module.exports = {
       },
     },
 
-    '/auth/me': {
-      get: {
-        tags: ['Auth'],
-        summary: 'Get current user (requires Authorization: Bearer <Firebase Uid>)',
-        security: [{ FirebaseUidAuth: [] }],
-        responses: {
-          200: {
-            description: 'Current user data (Mongo user)',
-            content: {
-              'application/json': {
-                schema: {
-                  type: 'object',
-                  properties: {
-                    user: { $ref: '#/components/schemas/UserShort' },
-                  },
-                },
+   '/auth/me': {
+  get: {
+    tags: ['Auth'],
+    summary: 'Get current authenticated user',
+    description: `
+Returns the logged-in user (MongoDB User).
+Optionally saves the user's notification token if provided in request body.
+    `,
+    security: [{ FirebaseUidAuth: [] }],
+    requestBody: {
+      required: false,
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              notificationToken: {
+                type: 'string',
+                example: 'fcm_device_token_here',
+                description: 'Optional — sent by frontend to register/update user notification token',
               },
-            },
-          },
-          401: {
-            description: 'Unauthorized',
-            content: {
-              'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } },
             },
           },
         },
       },
     },
+    responses: {
+      200: {
+        description: 'Current user data',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                message: { type: 'string', example: 'User retrieved successfully' },
+                status: { type: 'string', example: 'active' },
+                user: { $ref: '#/components/schemas/UserShort' },
+                notificationToken: {
+                  type: 'string',
+                  example: 'fcm_device_token_here',
+                },
+              },
+            },
+          },
+        },
+      },
+      401: {
+        description: 'Unauthorized',
+        content: {
+          'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } },
+        },
+      },
+    },
+  },
+},
+
 
     '/teacherRequest': {
       post: {
@@ -790,6 +818,10 @@ module.exports = {
         tags: ['TeacherRequest'],
         summary:
           "Admin approve or reject a teacher request. Body: { status: 'approved' | 'rejected' }",
+            description: `
+Approves or rejects a teacher request.
+If frontend sends a notification object, it is delivered to the teacher.
+    `,
         security: [{ FirebaseUidAuth: [] }],
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
         requestBody: {
@@ -798,15 +830,24 @@ module.exports = {
             'application/json': {
               schema: {
                 type: 'object',
+                                required: ['status'],
+
                 properties: {
                   status: { type: 'string', enum: ['approved', 'rejected'] },
                   reason: { type: 'string', description: 'optional rejection reason' },
+                  notification: {
+                type: 'object',
+                nullable: true,
+                properties: {
+                  title: { type: 'string', example: 'Your application was approved' },
+                  body: { type: 'string', example: 'Welcome aboard!' },
                 },
-                required: ['status'],
               },
             },
           },
         },
+      },
+    },
         responses: {
           200: {
             description: 'Request reviewed',
@@ -2194,6 +2235,10 @@ Assigns a teacher to a program (Correction, Memorization, or Child).
 Automatically generates:
 - Trial session (if enabled)
 - Full program plan sessions (if not generated before)
+Also triggers:
+- Notification to teacher: "You have been assigned to a new student"
+- Notification to student: "Your teacher has been assigned and plan is ready"
+    
 `,
         security: [{ FirebaseUidAuth: [] }],
         parameters: [
@@ -2744,143 +2789,145 @@ Only accessible by admin users.
         },
       },
     },
-    '/sessions/book': {
-      post: {
-        tags: ['Sessions'],
-        security: [{ FirebaseUidAuth: [] }],
-        summary: 'Book a single session for a program',
-        requestBody: {
-          required: true,
-          content: {
-            'application/json': {
-              schema: {
-                type: 'object',
-                required: ['programId', 'programModel', 'teacherId', 'scheduledAt'],
-                properties: {
-                  programId: {
-                    type: 'string',
-                    example: '677bf39fdd4f30f40cb15f94',
-                  },
-                  programModel: {
-                    type: 'string',
-                    enum: ['CorrectionProgram', 'MemorizationProgram', 'ChildMemorizationProgram'],
-                    example: 'MemorizationProgram',
-                  },
-                  teacherId: {
-                    type: 'string',
-                    example: '677a89d55b31812cd45dc342',
-                  },
-                  scheduledAt: {
-                    type: 'object',
-                    properties: {
-                      day: {
-                        type: 'string',
-                        enum: [
-                          'sunday',
-                          'monday',
-                          'tuesday',
-                          'wednesday',
-                          'thursday',
-                          'friday',
-                          'saturday',
-                        ],
-                        example: 'monday',
-                      },
-                      start: {
-                        type: 'string',
-                        example: '15:00',
-                      },
-                    },
-                  },
-                  scheduledAtDate: {
-                    type: 'string',
-                    format: 'date-time',
-                    example: '2025-03-02T15:00:00.000Z',
-                  },
-                },
-              },
-            },
-          },
-        },
-        responses: {
-          201: {
-            description: 'Session booked successfully',
-            content: {
-              'application/json': {
-                schema: { $ref: '#/components/schemas/Session' },
-              },
-            },
-          },
-          400: { description: 'Invalid time or teacher not available' },
-          403: { description: 'Teacher inactive or blocked' },
-          404: { description: 'Program or teacher not found' },
-        },
-      },
-    },
-    '/sessions/{id}/generatePlan': {
-      post: {
-        tags: ['Sessions'],
-        security: [{ FirebaseUidAuth: [] }],
-        summary: 'Generate full recurring schedule for a program',
-        parameters: [
-          {
-            in: 'path',
-            name: 'id',
-            required: true,
-            schema: { type: 'string' },
-            description: 'Program ID',
-          },
-        ],
-        requestBody: {
-          required: true,
-          content: {
-            'application/json': {
-              schema: {
-                type: 'object',
-                required: ['programModel'],
-                properties: {
-                  programModel: {
-                    type: 'string',
-                    enum: ['CorrectionProgram', 'MemorizationProgram', 'ChildMemorizationProgram'],
-                    example: 'CorrectionProgram',
-                  },
-                },
-              },
-            },
-          },
-        },
-        responses: {
-          201: {
-            description: 'Plan sessions generated successfully',
-            content: {
-              'application/json': {
-                schema: {
-                  type: 'object',
-                  properties: {
-                    status: { type: 'string', example: 'success' },
-                    totalCreated: { type: 'number', example: 12 },
-                    sessions: {
-                      type: 'array',
-                      items: { $ref: '#/components/schemas/Session' },
-                    },
-                  },
-                },
-              },
-            },
-          },
-          400: { description: 'Invalid preferred times or missing data' },
-          403: { description: 'Teacher is not dedicated to this program type' },
-          404: { description: 'Program or teacher not found' },
-        },
-      },
-    },
+    // '/sessions/book': {
+    //   post: {
+    //     tags: ['Sessions'],
+    //     security: [{ FirebaseUidAuth: [] }],
+    //     summary: 'Book a single session for a program',
+    //     requestBody: {
+    //       required: true,
+    //       content: {
+    //         'application/json': {
+    //           schema: {
+    //             type: 'object',
+    //             required: ['programId', 'programModel', 'teacherId', 'scheduledAt'],
+    //             properties: {
+    //               programId: {
+    //                 type: 'string',
+    //                 example: '677bf39fdd4f30f40cb15f94',
+    //               },
+    //               programModel: {
+    //                 type: 'string',
+    //                 enum: ['CorrectionProgram', 'MemorizationProgram', 'ChildMemorizationProgram'],
+    //                 example: 'MemorizationProgram',
+    //               },
+    //               teacherId: {
+    //                 type: 'string',
+    //                 example: '677a89d55b31812cd45dc342',
+    //               },
+    //               scheduledAt: {
+    //                 type: 'object',
+    //                 properties: {
+    //                   day: {
+    //                     type: 'string',
+    //                     enum: [
+    //                       'sunday',
+    //                       'monday',
+    //                       'tuesday',
+    //                       'wednesday',
+    //                       'thursday',
+    //                       'friday',
+    //                       'saturday',
+    //                     ],
+    //                     example: 'monday',
+    //                   },
+    //                   start: {
+    //                     type: 'string',
+    //                     example: '15:00',
+    //                   },
+    //                 },
+    //               },
+    //               scheduledAtDate: {
+    //                 type: 'string',
+    //                 format: 'date-time',
+    //                 example: '2025-03-02T15:00:00.000Z',
+    //               },
+    //             },
+    //           },
+    //         },
+    //       },
+    //     },
+    //     responses: {
+    //       201: {
+    //         description: 'Session booked successfully',
+    //         content: {
+    //           'application/json': {
+    //             schema: { $ref: '#/components/schemas/Session' },
+    //           },
+    //         },
+    //       },
+    //       400: { description: 'Invalid time or teacher not available' },
+    //       403: { description: 'Teacher inactive or blocked' },
+    //       404: { description: 'Program or teacher not found' },
+    //     },
+    //   },
+    // },
+    // '/sessions/{id}/generatePlan': {
+    //   post: {
+    //     tags: ['Sessions'],
+    //     security: [{ FirebaseUidAuth: [] }],
+    //     summary: 'Generate full recurring schedule for a program',
+    //     parameters: [
+    //       {
+    //         in: 'path',
+    //         name: 'id',
+    //         required: true,
+    //         schema: { type: 'string' },
+    //         description: 'Program ID',
+    //       },
+    //     ],
+    //     requestBody: {
+    //       required: true,
+    //       content: {
+    //         'application/json': {
+    //           schema: {
+    //             type: 'object',
+    //             required: ['programModel'],
+    //             properties: {
+    //               programModel: {
+    //                 type: 'string',
+    //                 enum: ['CorrectionProgram', 'MemorizationProgram', 'ChildMemorizationProgram'],
+    //                 example: 'CorrectionProgram',
+    //               },
+    //             },
+    //           },
+    //         },
+    //       },
+    //     },
+    //     responses: {
+    //       201: {
+    //         description: 'Plan sessions generated successfully',
+    //         content: {
+    //           'application/json': {
+    //             schema: {
+    //               type: 'object',
+    //               properties: {
+    //                 status: { type: 'string', example: 'success' },
+    //                 totalCreated: { type: 'number', example: 12 },
+    //                 sessions: {
+    //                   type: 'array',
+    //                   items: { $ref: '#/components/schemas/Session' },
+    //                 },
+    //               },
+    //             },
+    //           },
+    //         },
+    //       },
+    //       400: { description: 'Invalid preferred times or missing data' },
+    //       403: { description: 'Teacher is not dedicated to this program type' },
+    //       404: { description: 'Program or teacher not found' },
+    //     },
+    //   },
+    // },
 
     '/sessions/{id}/start': {
       patch: {
         tags: ['Sessions'],
         summary: 'Mark session as started',
-        description: 'Teacher or student marks the session as started.',
-        security: [{ FirebaseUidAuth: [] }],
+  description: `
+Marks a session as started.
+If frontend provides a {title, body} notification object, it is sent to both student and teacher.
+    `,        security: [{ FirebaseUidAuth: [] }],
         parameters: [
           {
             in: 'path',
@@ -2890,6 +2937,26 @@ Only accessible by admin users.
             description: 'Session ID',
           },
         ],
+          requestBody: {
+      required: false,
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              notification: {
+                type: 'object',
+                nullable: true,
+                properties: {
+                  title: { type: 'string', example: 'Session Started' },
+                  body: { type: 'string', example: 'Your session has just started.' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
         responses: {
           200: {
             description: 'Session has started',
@@ -2914,8 +2981,9 @@ Only accessible by admin users.
         tags: ['Sessions'],
         summary: 'Mark session as completed',
         description: `
-Teacher or student marks a session as completed.
-Automatically adds session.duration minutes to teacher.fulfilledMinutes.
+Marks a session as completed.
+Automatically adds session.duration to teacher.fulfilledMinutes.
+If notification object is provided, send to student + teacher.
     `,
         security: [{ FirebaseUidAuth: [] }],
         parameters: [
@@ -2927,6 +2995,26 @@ Automatically adds session.duration minutes to teacher.fulfilledMinutes.
             description: 'Session ID',
           },
         ],
+         requestBody: {
+      required: false,
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              notification: {
+                type: 'object',
+                nullable: true,
+                properties: {
+                  title: { type: 'string', example: 'Session Completed' },
+                  body: { type: 'string', example: 'Your session has been completed.' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
         responses: {
           200: {
             description: 'Session completed',
@@ -3367,8 +3455,10 @@ Admin access only.
         tags: ['Events'],
         security: [{ FirebaseUidAuth: [] }],
         summary: 'Create a new event (Admin only)',
-        description: 'Creates an event with image, start/end date, and details.',
-        requestBody: {
+  description: `
+Creates a new event with image upload and date range.
+Optionally triggers push notifications to all students IF the frontend provides a notification object.
+    `,        requestBody: {
           required: true,
           content: {
             'multipart/form-data': {
@@ -3392,6 +3482,15 @@ Admin access only.
                     type: 'Number',
                     description: 'price the student will pay',
                   },
+                     notification: {
+                type: 'object',
+                nullable: true,
+                description: 'Optional — triggers notification to all students',
+                properties: {
+                  title: { type: 'string', example: 'New Event Available!' },
+                  body: { type: 'string', example: 'Check out our Ramadan offer event!' },
+                },
+              },
                 },
                 required: ['title', 'startDate', 'endDate', 'eventImage', 'price'],
               },

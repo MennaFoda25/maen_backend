@@ -396,13 +396,13 @@ async function generatePlanSessionsLogic(program, teacher, programModel) {
   let preferred = [];
 
   if (programModel === 'CorrectionProgram') {
-     if (!program.preferredTimes || !Array.isArray(program.preferredTimes)) {
+    if (!program.preferredTimes || !Array.isArray(program.preferredTimes)) {
       throw new ApiError('Correction Program must have preferredTimes specified', 400);
     }
 
     const availableDays = schedule.map((d) => d.day);
     // Correction program: use preferredTimes if available, else use days + teacher's first slot
-   
+
     preferred = program.preferredTimes
       .filter((t) => t?.day && t?.start)
       .map((t) => {
@@ -419,7 +419,7 @@ async function generatePlanSessionsLogic(program, teacher, programModel) {
         return t;
       })
       .filter(Boolean);
-  }else if (
+  } else if (
     programModel === 'MemorizationProgram' ||
     programModel === 'ChildMemorizationProgram'
   ) {
@@ -694,188 +694,188 @@ exports.createTrialSession = asyncHandler(
   }
 );
 
-exports.bookProgramSession = asyncHandler(async (req, res, next) => {
-  const { programId, programModel, teacherId, scheduledAt, scheduledAtDate } = req.body;
-  const ProgramModel = {
-    CorrectionProgram,
-    MemorizationProgram,
-    ChildMemorizationProgram,
-  }[programModel];
+// exports.bookProgramSession = asyncHandler(async (req, res, next) => {
+//   const { programId, programModel, teacherId, scheduledAt, scheduledAtDate } = req.body;
+//   const ProgramModel = {
+//     CorrectionProgram,
+//     MemorizationProgram,
+//     ChildMemorizationProgram,
+//   }[programModel];
 
-  if (!ProgramModel) return next(new ApiError('Program not found', 404));
-  // 2️⃣ Validate program
-  const program = await ProgramModel.findById(programId);
-  if (!program) return next(new ApiError('Program not found', 404));
+//   if (!ProgramModel) return next(new ApiError('Program not found', 404));
+//   // 2️⃣ Validate program
+//   const program = await ProgramModel.findById(programId);
+//   if (!program) return next(new ApiError('Program not found', 404));
 
-  // const studentId = req.user._id;
-  const teacher = await User.findById(teacherId);
-  if (!teacher || teacher.status !== 'active') {
-    return next(new ApiError('Selected teacher is not available', 403));
-  }
-  const schedule = teacher.teacherProfile.availabilitySchedule || [];
+//   // const studentId = req.user._id;
+//   const teacher = await User.findById(teacherId);
+//   if (!teacher || teacher.status !== 'active') {
+//     return next(new ApiError('Selected teacher is not available', 403));
+//   }
+//   const schedule = teacher.teacherProfile.availabilitySchedule || [];
 
-  console.log(`📅 Looking for day: ${scheduledAt.day}`);
-  console.log(
-    `📅 Available days in schedule:`,
-    schedule.map((s) => s.day)
-  );
+//   console.log(`📅 Looking for day: ${scheduledAt.day}`);
+//   console.log(
+//     `📅 Available days in schedule:`,
+//     schedule.map((s) => s.day)
+//   );
 
-  // 3) Get day record
-  const dayRecord = schedule.find(
-    (d) => d.day && d.day.toLowerCase() === scheduledAt.day.toLowerCase()
-  );
+//   // 3) Get day record
+//   const dayRecord = schedule.find(
+//     (d) => d.day && d.day.toLowerCase() === scheduledAt.day.toLowerCase()
+//   );
 
-  if (!dayRecord) {
-    return next(new ApiError('Teacher not available on this day', 400));
-  }
+//   if (!dayRecord) {
+//     return next(new ApiError('Teacher not available on this day', 400));
+//   }
 
-  console.log(`📅 Found day record for ${scheduledAt.day}`);
-  console.log(`📅 Available slots:`, dayRecord.slots);
+//   console.log(`📅 Found day record for ${scheduledAt.day}`);
+//   console.log(`📅 Available slots:`, dayRecord.slots);
 
-  // 4) Find slot - check if the requested time falls within any slot's range
-  const slot = dayRecord.slots.find((s) => {
-    const [reqH, reqM] = scheduledAt.start.split(':').map(Number);
-    const [slotH, slotM] = s.start.split(':').map(Number);
-    const [slotEndH, slotEndM] = s.end.split(':').map(Number);
+//   // 4) Find slot - check if the requested time falls within any slot's range
+//   const slot = dayRecord.slots.find((s) => {
+//     const [reqH, reqM] = scheduledAt.start.split(':').map(Number);
+//     const [slotH, slotM] = s.start.split(':').map(Number);
+//     const [slotEndH, slotEndM] = s.end.split(':').map(Number);
 
-    const reqTime = reqH * 60 + reqM;
-    const slotStart = slotH * 60 + slotM;
-    const slotEnd = slotEndH * 60 + slotEndM;
+//     const reqTime = reqH * 60 + reqM;
+//     const slotStart = slotH * 60 + slotM;
+//     const slotEnd = slotEndH * 60 + slotEndM;
 
-    const fits = reqTime >= slotStart && reqTime < slotEnd;
-    console.log(
-      `    Checking slot ${s.start}-${s.end}: reqTime=${reqTime}, slotStart=${slotStart}, slotEnd=${slotEnd}, fits=${fits}`
-    );
-    return fits;
-  });
+//     const fits = reqTime >= slotStart && reqTime < slotEnd;
+//     console.log(
+//       `    Checking slot ${s.start}-${s.end}: reqTime=${reqTime}, slotStart=${slotStart}, slotEnd=${slotEnd}, fits=${fits}`
+//     );
+//     return fits;
+//   });
 
-  if (!slot) {
-    console.log(`❌ No suitable slot found for ${scheduledAt.start}`);
-    return next(new ApiError('Selected time slot is not available', 400));
-  }
+//   if (!slot) {
+//     console.log(`❌ No suitable slot found for ${scheduledAt.start}`);
+//     return next(new ApiError('Selected time slot is not available', 400));
+//   }
 
-  console.log(`✅ Found suitable slot: ${slot.start}-${slot.end}`);
+//   console.log(`✅ Found suitable slot: ${slot.start}-${slot.end}`);
 
-  // 4.5) Check for scheduling conflicts using checkOverLap
-  // Parse the scheduled date from request or compute it from day name
-  let sessionDate;
-  if (scheduledAtDate) {
-    sessionDate = new Date(scheduledAtDate);
-  } else {
-    // Fallback: compute from day name (less reliable)
-    const [hours, minutes] = scheduledAt.start.split(':').map(Number);
-    sessionDate = new Date();
-    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-    const dayIndex = days.indexOf(scheduledAt.day.toLowerCase());
-    const currentDay = sessionDate.getDay();
-    const diff = (dayIndex - currentDay + 7) % 7;
-    sessionDate.setDate(sessionDate.getDate() + diff);
-    sessionDate.setHours(hours, minutes, 0, 0);
-  }
+//   // 4.5) Check for scheduling conflicts using checkOverLap
+//   // Parse the scheduled date from request or compute it from day name
+//   let sessionDate;
+//   if (scheduledAtDate) {
+//     sessionDate = new Date(scheduledAtDate);
+//   } else {
+//     // Fallback: compute from day name (less reliable)
+//     const [hours, minutes] = scheduledAt.start.split(':').map(Number);
+//     sessionDate = new Date();
+//     const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+//     const dayIndex = days.indexOf(scheduledAt.day.toLowerCase());
+//     const currentDay = sessionDate.getDay();
+//     const diff = (dayIndex - currentDay + 7) % 7;
+//     sessionDate.setDate(sessionDate.getDate() + diff);
+//     sessionDate.setHours(hours, minutes, 0, 0);
+//   }
 
-  const hasConflict = await checkOverLap({
-    teacherId,
-    start: sessionDate.toISOString(),
-    duration: program.sessionDuration,
-  });
+//   const hasConflict = await checkOverLap({
+//     teacherId,
+//     start: sessionDate.toISOString(),
+//     duration: program.sessionDuration,
+//   });
 
-  if (hasConflict) {
-    return next(new ApiError('Teacher already has a session at this time', 400));
-  }
+//   if (hasConflict) {
+//     return next(new ApiError('Teacher already has a session at this time', 400));
+//   }
 
-  await ensureProgramMeetingId(program);
-  // 5) Build correct session payload (matches your Session model)
-  const sessionPayload = {
-    program: programId,
-    programModel,
-    student: req.user._id,
-    teacher: teacherId,
-    duration: program.sessionDuration,
-    status: 'scheduled',
-    type: 'program',
-    scheduledAtDate: sessionDate,
-    scheduledAt: [
-      {
-        day: scheduledAt.day,
-        slots: [
-          { start: scheduledAt.start }, // your session model only has start
-        ],
-      },
-    ],
-    meetingId: program.meetingId,
-    meetingLink: program.meetingLink || null,
-  };
+//   await ensureProgramMeetingId(program);
+//   // 5) Build correct session payload (matches your Session model)
+//   const sessionPayload = {
+//     program: programId,
+//     programModel,
+//     student: req.user._id,
+//     teacher: teacherId,
+//     duration: program.sessionDuration,
+//     status: 'scheduled',
+//     type: 'program',
+//     scheduledAtDate: sessionDate,
+//     scheduledAt: [
+//       {
+//         day: scheduledAt.day,
+//         slots: [
+//           { start: scheduledAt.start }, // your session model only has start
+//         ],
+//       },
+//     ],
+//     meetingId: program.meetingId,
+//     meetingLink: program.meetingLink || null,
+//   };
 
-  const session = await Session.create(sessionPayload);
+//   const session = await Session.create(sessionPayload);
 
-  // 6) Remove booked time from teacher availability using proper time fragmentation
-  const endDate = new Date(sessionDate.getTime() + program.sessionDuration * 60000);
-  removeBookedTimeFromSlots(dayRecord, sessionDate, endDate);
-  await teacher.save();
+//   // 6) Remove booked time from teacher availability using proper time fragmentation
+//   const endDate = new Date(sessionDate.getTime() + program.sessionDuration * 60000);
+//   removeBookedTimeFromSlots(dayRecord, sessionDate, endDate);
+//   await teacher.save();
 
-  return res.status(201).json({
-    status: 'success',
-    message: 'Session booked successfully',
-    session,
-  });
-});
+//   return res.status(201).json({
+//     status: 'success',
+//     message: 'Session booked successfully',
+//     session,
+//   });
+// });
 
-exports.trialSessionAccept = asyncHandler(async (req, res, next) => {
-  const { scheduledAt, meetingLink } = req.body;
+// exports.trialSessionAccept = asyncHandler(async (req, res, next) => {
+//   const { scheduledAt, meetingLink } = req.body;
 
-  const trial = await Session.findById(req.params.id);
-  if (!trial) return next(new ApiError('Trial not found'));
-  if (trial.type !== 'trial') {
-    return next(new ApiError('This session is not a trial session', 400));
-  }
-  if (trial.teacher.toString() !== req.user._id.toString()) {
-    return next(new ApiError('You are not authorized to schedule this trial', 403));
-  }
-  const dateObj = new Date(scheduledAt);
-  if (isNaN(dateObj)) {
-    return next(new ApiError('Invalid date format', 400));
-  }
+//   const trial = await Session.findById(req.params.id);
+//   if (!trial) return next(new ApiError('Trial not found'));
+//   if (trial.type !== 'trial') {
+//     return next(new ApiError('This session is not a trial session', 400));
+//   }
+//   if (trial.teacher.toString() !== req.user._id.toString()) {
+//     return next(new ApiError('You are not authorized to schedule this trial', 403));
+//   }
+//   const dateObj = new Date(scheduledAt);
+//   if (isNaN(dateObj)) {
+//     return next(new ApiError('Invalid date format', 400));
+//   }
 
-  //trial.scheduledAt = new Date(scheduledAt);
+//   //trial.scheduledAt = new Date(scheduledAt);
 
-  const conflict = await checkOverLap({
-    teacherId: trial.teacher,
-    start: dateObj.toISOString(),
-    duration: trial.duration,
-  });
+//   const conflict = await checkOverLap({
+//     teacherId: trial.teacher,
+//     start: dateObj.toISOString(),
+//     duration: trial.duration,
+//   });
 
-  if (conflict) {
-    return next(new ApiError('Teacher has session at the same time', 400));
-  }
+//   if (conflict) {
+//     return next(new ApiError('Teacher has session at the same time', 400));
+//   }
 
-  trial.scheduledAt = dateObj;
-  // Step 3 — Convert to structured scheduledAt
-  const dayName = dateObj.toLocaleString('en-US', { weekday: 'long' }).toLowerCase(); // monday, tuesday...
+//   trial.scheduledAt = dateObj;
+//   // Step 3 — Convert to structured scheduledAt
+//   const dayName = dateObj.toLocaleString('en-US', { weekday: 'long' }).toLowerCase(); // monday, tuesday...
 
-  const startTime = dateObj.toISOString().slice(11, 16); // "17:00"
+//   const startTime = dateObj.toISOString().slice(11, 16); // "17:00"
 
-  trial.scheduledAt = [
-    {
-      day: dayName,
-      slots: [{ start: startTime }],
-    },
-  ];
+//   trial.scheduledAt = [
+//     {
+//       day: dayName,
+//       slots: [{ start: startTime }],
+//     },
+//   ];
 
-  trial.meetingLink = meetingLink;
-  trial.status = 'scheduled';
+//   trial.meetingLink = meetingLink;
+//   trial.status = 'scheduled';
 
-  await trial.save();
+//   await trial.save();
 
-  res.status(200).json({
-    status: 'success',
-    message: 'Trial session confirmed',
-    data: trial,
-  });
-});
+//   res.status(200).json({
+//     status: 'success',
+//     message: 'Trial session confirmed',
+//     data: trial,
+//   });
+// });
 
 exports.sessionCompleted = asyncHandler(async (req, res, next) => {
   const sessionId = req.params.id;
-
+  const { notification } = req.body;
   const session = await Session.findByIdAndUpdate(
     sessionId,
     {
@@ -892,6 +892,14 @@ exports.sessionCompleted = asyncHandler(async (req, res, next) => {
         (teacher.teacherProfile.fulfilledMinutes || 0) + (session.duration || 0)));
     await teacher.save();
   }
+
+  
+  if (notification) {
+    const student = await User.findById(session.student);
+    await sendToUser(teacher, notification);
+    await sendToUser(student, notification);
+  }
+
   res.status(200).json({
     status: 'success',
     message: 'Session marked as completed',
@@ -901,6 +909,7 @@ exports.sessionCompleted = asyncHandler(async (req, res, next) => {
 
 exports.sessionStart = asyncHandler(async (req, res, next) => {
   const sessionId = req.params.id;
+  const { notification } = req.body;
   const session = await Session.findByIdAndUpdate(
     { _id: sessionId },
     {
@@ -910,8 +919,12 @@ exports.sessionStart = asyncHandler(async (req, res, next) => {
     { new: true }
   );
 
-  sendN
-
+  if (notification) {
+    const teacher = await User.findById(session.teacher);
+    const student = await User.findById(session.student);
+    await sendToUser(teacher, notification);
+    await sendToUser(student, notification);
+  }
   res.status(200).json({
     status: 'success',
     message: 'Session has started',

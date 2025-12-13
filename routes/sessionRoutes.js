@@ -3,8 +3,8 @@ const router = express.Router();
 const { firebaseAuth } = require('../middlewares/firebaseAuth');
 const { allowedTo } = require('../controllers/authServices');
 const {
-  bookProgramSession,
-  trialSessionAccept,
+//bookProgramSession,
+  //trialSessionAccept,
   sessionCompleted,
   sessionStart,
   generatePlanSessions
@@ -12,9 +12,9 @@ const {
 
 router.use(firebaseAuth);
 
-router.post('/book',allowedTo('student'), bookProgramSession);
-router.post('/:id/generatePlan',allowedTo('student'), generatePlanSessions);
-router.route('/:id/accept').patch(allowedTo('teacher'), trialSessionAccept);
+//router.post('/book',allowedTo('student'), bookProgramSession);
+//router.post('/:id/generatePlan',allowedTo('student'), generatePlanSessions);
+//router.route('/:id/accept').patch(allowedTo('teacher'), trialSessionAccept);
 router.patch('/:id/complete', allowedTo('teacher', 'student'), sessionCompleted);
 router.patch('/:id/start', allowedTo('teacher', 'student'), sessionStart);
 

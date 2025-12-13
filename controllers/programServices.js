@@ -8,6 +8,7 @@ const MemorizationProgram = require('../models/memorizationProgramModel');
 const CorrectionProgram = require('../models/correctionProgramModel');
 const ChildProgram = require('../models/childMemoProgramModel');
 const crypto = require('crypto');
+const { sendNotification } = require('../utils/sendNotification');
 
 const { slotCovers } = require('../utils/time');
 
@@ -224,13 +225,16 @@ exports.getProgramTypes = asyncHandler(async (req, res, next) => {
 //   return trial;
 // });
 
-exports.getAllFreeTrials = asyncHandler(async(req,res,next)=>{
-  const freeTrials = await Session.find({type:'trial'}).populate('program','programTypeKey').populate('student','name email').populate('teacher','name email');
+exports.getAllFreeTrials = asyncHandler(async (req, res, next) => {
+  const freeTrials = await Session.find({ type: 'trial' })
+    .populate('program', 'programTypeKey')
+    .populate('student', 'name email')
+    .populate('teacher', 'name email');
 
-res.status(200).json({
-    status:'success',
-    count:freeTrials.length,
-    data:freeTrials,
+  res.status(200).json({
+    status: 'success',
+    count: freeTrials.length,
+    data: freeTrials,
   });
 });
 
@@ -364,7 +368,6 @@ exports.deleteProgram = asyncHandler(async (req, res, next) => {
     message: 'Program deleted successfully',
   });
 });
-
 
 async function generatePlanSessionsLogic(program, teacher, programModel) {
   const schedule = teacher?.teacherProfile?.availabilitySchedule || [];
@@ -505,7 +508,7 @@ async function generatePlanSessionsLogic(program, teacher, programModel) {
 
 exports.assignTeacherToProgram = asyncHandler(async (req, res, next) => {
   const { id: programId } = req.params;
-  const { teacherId } = req.body;
+  const { teacherId,notification } = req.body;
 
   if (!teacherId) return next(new ApiError('teacherId is required', 400));
 
@@ -564,6 +567,11 @@ exports.assignTeacherToProgram = asyncHandler(async (req, res, next) => {
       programModel,
       hasTrial // pass trial info
     );
+  }
+
+  // 🟦 🔥 SEND NOTIFICATION TO THE TEACHER
+  if (notification) {
+    await sendNotification(teacher, notification);
   }
 
   res.status(200).json({

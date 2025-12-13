@@ -1,13 +1,14 @@
 const asyncHandler = require('express-async-handler');
 const Event = require('../models/eventModel');
 const ApiError = require('../utils/apiError');
+const sendNotification = require('../utils/sendNotification');
+const User = require('../models/userModel');
 
 // @desc    Create a new event with image
 // @route   POST /api/v1/events
 // @access  Private (Admin)
 exports.createEvent = asyncHandler(async (req, res, next) => {
-  const { title, description, startDate, endDate ,price} = req.body;
-
+  const { title, description, startDate, endDate, price , notification} = req.body;
 
   // Get image URL from uploaded files
   const imageUrl = req.uploadedFiles?.eventImage?.[0]?.fileUrl;
@@ -25,8 +26,14 @@ exports.createEvent = asyncHandler(async (req, res, next) => {
     startDate: new Date(startDate),
     endDate: new Date(endDate),
     isActive: true,
-    price
+    price,
   });
+
+  // Send notification (optional)
+  if (notification) {
+    const students = await User.find({ role: "student", notificationToken: { $exists: true } });
+    await Promise.all(students.map((s) => sendToUser(s, notification)));
+  }
 
   console.log(`✨ Event created successfully with ID: ${event._id}`);
 
@@ -115,7 +122,7 @@ exports.getEventById = asyncHandler(async (req, res, next) => {
 // @route   PATCH /api/v1/events/:id
 // @access  Private (Admin)
 exports.updateEvent = asyncHandler(async (req, res, next) => {
-  const { title, description, startDate, endDate, isActive ,price} = req.body;
+  const { title, description, startDate, endDate, isActive, price } = req.body;
 
   const event = await Event.findById(req.params.id);
 
@@ -169,7 +176,7 @@ exports.updateEvent = asyncHandler(async (req, res, next) => {
   if (isActive !== undefined) {
     event.isActive = isActive;
   }
-if(price) event.price =price
+  if (price) event.price = price;
   // Update image if provided
   if (req.uploadedFiles?.eventImage?.[0]?.fileUrl) {
     event.imageUrl = req.uploadedFiles.eventImage[0].fileUrl;

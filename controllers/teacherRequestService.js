@@ -5,6 +5,7 @@ const User = require('../models/userModel');
 const factory = require('../controllers/handlerFactory');
 const Session = require('../models/sessionModel');
 const mongoose = require('mongoose');
+const sendNotification = require('../utils/sendNotification');
 
 const safeJsonParse = (data, fallback = {}) => {
   return typeof data === 'string' ? JSON.parse(data) : data || fallback;
@@ -133,14 +134,14 @@ exports.requestTobeTeacher = asyncHandler(async (req, res, next) => {
 
 exports.reviewteacherReq = asyncHandler(async (req, res, next) => {
   // (!req.firebase || !req.firebase.uid) return next(new ApiError('Missing Firebase token', 401));
-  const decoded = req.firebase;
+  // const decoded = req.firebase;
   // Validate requester is admin (load from DB)
-  const requester = await User.findOne({ firebaseUid: req.firebase.uid });
+  // const requester = await User.findOne({ firebaseUid: req.firebase.uid });
   //if (!requester || requester.role !== 'admin')
   // return next(new ApiError('Admin privileges required', 403));
 
   // Validate body
-  const { status } = req.body;
+  const { status,notification } = req.body;
   if (!['approved', 'rejected'].includes(status)) {
     return next(new ApiError('Status must be either "approved" or "rejected"', 400));
   }
@@ -149,6 +150,8 @@ exports.reviewteacherReq = asyncHandler(async (req, res, next) => {
   const teacherReq = await TeacherRequest.findById(id);
 
   if (!teacherReq) return next(new ApiError('Request not found', 404));
+
+  let teacherUser = await User.findOne({ firebaseUid: teacherReq.firebaseUid });
 
   if (status === 'approved') {
     let user = await User.findOne({ email: teacherReq.email });
@@ -169,6 +172,11 @@ exports.reviewteacherReq = asyncHandler(async (req, res, next) => {
       });
     }
   }
+      // Send notification (optional)
+  if (notification && teacherUser) {
+    await sendNotification(teacherUser, notification);
+  }
+
   teacherReq.status = status;
   await teacherReq.save();
   res.json({ message: `Teacher request ${status}`, teacherReq });

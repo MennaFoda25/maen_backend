@@ -1,38 +1,17 @@
-const asyncHandler = require('express-async-handler');
-const admin = require('../config/firebase'); // your initialized firebase admin
+// utils/sendNotification.js
+const admin = require("../config/firebase");
 
-// Helper: build payload
-function buildNotificationPayload(title, body, data = {}) {
-  return {
-    notification: { title, body },
-    data: Object.fromEntries(
-      Object.entries(data).map(([k, v]) => [k, String(v)]) // FCM requires strings
-    ),
+// sendToUser(user, { title, body })
+exports.sendToUser = async (user, notification = {}) => {
+  if (!user?.notificationToken) return;
+
+  const message = {
+    token: user.notificationToken,
+    notification: {
+      title: notification.title || "Notification",
+      body: notification.body || "",
+    },
   };
-}
 
-// 🔔 Notify Student
-exports.notifyStudent = asyncHandler(async (student, title, body, data = {}) => {
-  if (!student?.notificationToken) {
-    console.log(`⚠️ No FCM token for student: ${student?.name}`);
-    return;
-  }
-
-  const payload = buildNotificationPayload(title, body, data);
-
-  await admin.messaging().sendToDevice(student.notificationToken, payload);
-  console.log(`📨 Notification sent to student: ${student.name}`);
-});
-
-// 🔔 Notify Teacher
-exports.notifyTeacher = asyncHandler(async (teacher, title, body, data = {}) => {
-  if (!teacher?.notificationToken) {
-    console.log(`⚠️ No FCM token for teacher: ${teacher?.name}`);
-    return;
-  }
-
-  const payload = buildNotificationPayload(title, body, data);
-
-  await admin.messaging().sendToDevice(teacher.notificationToken, payload);
-  console.log(`📨 Notification sent to teacher: ${teacher.name}`);
-});
+  await admin.messaging().send(message);
+};

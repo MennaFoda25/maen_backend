@@ -28,8 +28,21 @@ exports.getFirebaseUser = asyncHandler(async (req, res, next) => {
   // }
   console.log('🔥 UID received:', uid);
 
+    // Get notification token (from header or body)
+  const notificationToken =
+    req.body?.notificationToken ||
+    req.headers['x-notification-token'] ||
+    null;
+
   const user = await User.findOne({ firebaseUid: uid });
   if (user) {
+      // Update token if provided
+    if (notificationToken && user.notificationToken !== user.notificationToken) {
+      user.notificationToken = notificationToken;
+      await user.save();
+      console.log("🔔 Saved new notification token for user:", user._id);
+    }
+
     return res.status(200).json({
       message: 'User retrieved successfully',
       status: 'active',

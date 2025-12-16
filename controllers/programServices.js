@@ -8,6 +8,7 @@ const MemorizationProgram = require('../models/memorizationProgramModel');
 const CorrectionProgram = require('../models/correctionProgramModel');
 const ChildProgram = require('../models/childMemoProgramModel');
 const crypto = require('crypto');
+const mongoose = require('mongoose');
 const { sendNotification } = require('../utils/sendNotification');
 
 const { slotCovers } = require('../utils/time');
@@ -369,6 +370,14 @@ exports.deleteProgram = asyncHandler(async (req, res, next) => {
   });
 });
 
+function resolveStudentId(program) {
+  if (program.student) return program.student;
+  if (program.parent) return program.parent;
+
+  throw new ApiError('Program has no student or parent reference', 500);
+}
+
+
 async function generatePlanSessionsLogic(program, teacher, programModel) {
   const schedule = teacher?.teacherProfile?.availabilitySchedule || [];
 
@@ -381,6 +390,7 @@ async function generatePlanSessionsLogic(program, teacher, programModel) {
     throw new ApiError('Program must have preferred times specified', 400);
   }
 
+  
   // Normalize preferredTimes
   let preferred = program.preferredTimes
     .filter((t) => t?.day && t?.start)
@@ -472,11 +482,12 @@ async function generatePlanSessionsLogic(program, teacher, programModel) {
 
       if (!fitsSomeSlot) continue;
 
+      const studentId = resolveStudentId(program);
       // Create session
       const newSession = await Session.create({
         program: programId,
         programModel,
-        student: program.parent || program.student || null,
+        student: studentId,
         teacher: program.teacher,
         duration,
         type: 'program',
@@ -529,6 +540,8 @@ exports.assignTeacherToProgram = asyncHandler(async (req, res, next) => {
   let trialSessionDoc = null;
   let hasTrial = false;
 
+  const studentId = resolveStudentId(program);
+
   if (program.trialSession === true) {
     const existingTrial = await Session.findOne({ program: programId, type: 'trial' });
 
@@ -539,7 +552,7 @@ exports.assignTeacherToProgram = asyncHandler(async (req, res, next) => {
       trialSessionDoc = await Session.create({
         program: programId,
         programModel,
-        student: program.student || program.parent,
+        student: studentId,
         teacher: teacherId,
         type: 'trial',
         duration: 15,

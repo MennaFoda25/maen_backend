@@ -5,6 +5,7 @@ const Session = require('../models/sessionModel'); // optional checks
 const asyncHandler = require('express-async-handler');
 const ApiError = require('../utils/apiError');
 const CorrectionProgram = require('../models/correctionProgramModel');
+const { sendNotification } = require('../utils/sendNotification');
 
 /**
  * POST /chat/conversation
@@ -130,7 +131,7 @@ exports.chatWithUser = asyncHandler(async (req, res, next) => {
   // }
 
   // Validate receiver exists
-  const receiver = await User.findById(receiverId).select('name role');
+  const receiver = await User.findById(receiverId).select('name role notificationToken');
   if (!receiver) return next(new ApiError('Receiver not found', 404));
 
   // 1️⃣ Find or create conversation
@@ -152,17 +153,30 @@ exports.chatWithUser = asyncHandler(async (req, res, next) => {
   const message = {
     sender: senderId,
     text: text || '',
-    attachmentUrl: attachmentUrl || null,
     createdAt: new Date(),
   };
 
   conversation.messages.push(message);
 
   // 3️⃣ Update conversation preview
-  conversation.lastMessage = text || (attachmentUrl ? 'Attachment' : '');
+  conversation.lastMessage = text;
   conversation.lastMessageAt = new Date();
 
   await conversation.save();
+
+  if (receiver.notificationToken && receiverId !== senderId) {
+    const sender = await User.findById(senderId).select('name');
+    await sendNotification({
+      token: receiver.notificationToken,
+      title: `New message from ${sender.name}`,
+      body: text,
+      data: {
+        type: 'chat_message',
+        conversationId: conversation._id.toString(),
+        senderId,
+      },
+    });
+  }
 
   // 4️⃣ Populate participants
   await conversation.populate('participants', 'name profile_picture');
@@ -267,7 +281,7 @@ exports.getMyConversations = asyncHandler(async (req, res, next) => {
     .sort({ lastMessageAt: -1 })
     .lean();
 
-     // 🔥 Remove teacherProfile manually if still present
+  // 🔥 Remove teacherProfile manually if still present
   conversations.forEach((conv) => {
     conv.participants.forEach((p) => {
       delete p.teacherProfile; // 🔥 safely removed

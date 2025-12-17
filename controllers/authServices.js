@@ -19,7 +19,6 @@ exports.firstLogin = asyncHandler(async (req, res, next) => {
 exports.getFirebaseUser = asyncHandler(async (req, res, next) => {
   const uid =
     req.firebase?.uid ||
-    req.body?.firebaseUid ||
     req.query?.firebaseUid ||
     req.headers['x-firebase-uid'];
 
@@ -30,14 +29,13 @@ exports.getFirebaseUser = asyncHandler(async (req, res, next) => {
 
     // Get notification token (from header or body)
   const notificationToken =
-    req.body?.notificationToken ||
     req.headers['x-notification-token'] ||
     null;
 
   const user = await User.findOne({ firebaseUid: uid });
   if (user) {
       // Update token if provided
-    if (notificationToken && user.notificationToken !== user.notificationToken) {
+    if (notificationToken && user.notificationToken !== notificationToken) {
       user.notificationToken = notificationToken;
       await user.save();
       console.log("🔔 Saved new notification token for user:", user._id);

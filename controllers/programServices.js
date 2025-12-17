@@ -8,7 +8,6 @@ const MemorizationProgram = require('../models/memorizationProgramModel');
 const CorrectionProgram = require('../models/correctionProgramModel');
 const ChildProgram = require('../models/childMemoProgramModel');
 const crypto = require('crypto');
-const mongoose = require('mongoose');
 const { sendNotification } = require('../utils/sendNotification');
 
 const { slotCovers } = require('../utils/time');
@@ -302,11 +301,14 @@ exports.getTeachersByProgramType = asyncHandler(async (req, res) => {
 
 exports.getAllLoggedStudentPrograms = asyncHandler(async (req, res, next) => {
   const studentId = req.user._id;
-  const memorizationPrograms = await MemorizationProgram.find({ student: studentId }).select(
+  const teacherFilter = {
+    teacher: {$exists: true}
+  }
+  const memorizationPrograms = await MemorizationProgram.find({ student: studentId, ...teacherFilter }).select(
     '-__v'
   );
-  const correctionPrograms = await CorrectionProgram.find({ student: studentId }).select('-__v');
-  const childPrograms = await ChildProgram.find({ parent: studentId }).select('-__v');
+  const correctionPrograms = await CorrectionProgram.find({ student: studentId,...teacherFilter }).select('-__v');
+  const childPrograms = await ChildProgram.find({ parent: studentId, ...teacherFilter }).select('-__v');
 
   res.status(200).json({
     status: 'success',
@@ -519,7 +521,7 @@ async function generatePlanSessionsLogic(program, teacher, programModel) {
 
 exports.assignTeacherToProgram = asyncHandler(async (req, res, next) => {
   const { id: programId } = req.params;
-  const { teacherId,notification } = req.body;
+  const { teacherId } = req.body;
 
   if (!teacherId) return next(new ApiError('teacherId is required', 400));
 
@@ -582,10 +584,14 @@ exports.assignTeacherToProgram = asyncHandler(async (req, res, next) => {
     );
   }
 
-  // 🟦 🔥 SEND NOTIFICATION TO THE TEACHER
-  if (notification) {
-    await sendNotification(teacher, notification);
-  }
+ await sendNotification(teacher, {
+    title: 'New Program Assigned 🎉',
+    body: `You have been assigned to a new program (${programModel}).`,
+    data:{
+      programId: program._id.toString(),
+      type:'program'
+    }
+    })
 
   res.status(200).json({
     status: 'success',

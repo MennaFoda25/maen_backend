@@ -1,6 +1,8 @@
 const admin = require('firebase-admin');
 // Instead, initialize using environment variables
+
 if (!admin.apps.length) {
+
   admin.initializeApp({
     credential: admin.credential.cert({
       type: 'service_account',
@@ -17,5 +19,7 @@ if (!admin.apps.length) {
     databaseURL: process.env.FIREBASE_DATABASE_URL, // If using Realtime DB
   });
 }
+
+
 
 module.exports = admin;

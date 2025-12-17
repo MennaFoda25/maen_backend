@@ -1,14 +1,14 @@
 const asyncHandler = require('express-async-handler');
 const Event = require('../models/eventModel');
 const ApiError = require('../utils/apiError');
-const sendNotification = require('../utils/sendNotification');
+const { sendNotification } = require('../utils/sendNotification');
 const User = require('../models/userModel');
 
 // @desc    Create a new event with image
 // @route   POST /api/v1/events
 // @access  Private (Admin)
 exports.createEvent = asyncHandler(async (req, res, next) => {
-  const { title, description, startDate, endDate, price , notification} = req.body;
+  const { title, description, startDate, endDate, price, notification } = req.body;
 
   // Get image URL from uploaded files
   const imageUrl = req.uploadedFiles?.eventImage?.[0]?.fileUrl;
@@ -29,11 +29,24 @@ exports.createEvent = asyncHandler(async (req, res, next) => {
     price,
   });
 
-  // Send notification (optional)
-  if (notification) {
-    const students = await User.find({ role: "student", notificationToken: { $exists: true } });
-    await Promise.all(students.map((s) => sendToUser(s, notification)));
-  }
+  const students = await User.find({ role: 'student', notificationToken: { $ne: null } }).select(
+    'notificationToken'
+  );
+
+  // 🔔 SEND NOTIFICATIONS
+  await Promise.all(
+    students.map((student) =>
+      sendNotification({
+        token: student.notificationToken,
+        title: 'New Event Available 🎉',
+        body: event.title,
+        data: {
+          eventId: event._id.toString(),
+          type: 'EVENT_CREATED',
+        },
+      })
+    )
+  );
 
   console.log(`✨ Event created successfully with ID: ${event._id}`);
 

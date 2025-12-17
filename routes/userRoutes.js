@@ -14,18 +14,19 @@ const {
   deleteUser,
   changePassword,
   suspendUser,
+  deleteMe,
 } = require('../controllers/userService');
-const {getLoggedInStudentPlans}= require('../controllers/studentServices')
+const { getLoggedInStudentPlans } = require('../controllers/studentServices');
 const { uploadFiles } = require('../middlewares/uploadFilesMiddleware');
 const { allowedTo } = require('../controllers/authServices');
 
-const { firebaseAuth  } = require('../middlewares/firebaseAuth');
+const { firebaseAuth } = require('../middlewares/firebaseAuth');
 
 const router = express.Router();
 
-router.use(firebaseAuth );
+router.use(firebaseAuth);
 router.put('/changeMyPassword', changePassword);
-router.get('/myPlans',allowedTo('student'),getLoggedInStudentPlans)
+router.get('/myPlans', allowedTo('student'), getLoggedInStudentPlans);
 
 router
   .route('/')
@@ -37,4 +38,5 @@ router
   .get(allowedTo('admin'), getUserValidator, getUser)
   .delete(allowedTo('admin'), deleteUserValidator, deleteUser);
 router.put('/:id/suspend', allowedTo('admin'), suspendUser);
+router.delete('/deleteMe', allowedTo('student', 'teacher'), deleteMe);
 module.exports = router;

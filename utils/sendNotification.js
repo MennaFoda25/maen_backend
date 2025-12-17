@@ -1,17 +1,18 @@
-// utils/sendNotification.js
-const admin = require("../config/firebase");
+const admin = require('../config/firebase');
 
-// sendToUser(user, { title, body })
-exports.sendToUser = async (user, notification = {}) => {
-  if (!user?.notificationToken) return;
+module.exports.sendNotification = async ({ token, title, body, data = {} }) => {
+  if (!token) return;
 
-  const message = {
-    token: user.notificationToken,
+  const response1 = await admin.messaging().send({
+    token,
     notification: {
-      title: notification.title || "Notification",
-      body: notification.body || "",
+      title,
+      body,
     },
-  };
+    data, // optional custom payload
+  });
 
-  await admin.messaging().send(message);
+  console.log('FCM message Id', response1);
+
 };
+

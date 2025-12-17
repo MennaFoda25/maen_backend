@@ -7,8 +7,8 @@ module.exports = {
   },
   servers: [
     {
-    //  url: 'http://localhost:3000/api/v1',
-       url: 'https://maen-backend.onrender.com/api/v1',
+      // url: 'http://localhost:3000/api/v1',
+      url: 'https://maen-backend.onrender.com/api/v1',
       // description: 'local dev server',
       description:
         process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server',
@@ -47,6 +47,7 @@ module.exports = {
         type: 'object',
         properties: {
           bio: { type: 'string', example: 'Experienced' },
+          gender: { type: 'string', example: 'male' },
           certificates: {
             type: 'array',
             items: { type: 'string' },
@@ -673,62 +674,88 @@ module.exports = {
       },
     },
 
-   '/auth/me': {
-  get: {
-    tags: ['Auth'],
-    summary: 'Get current authenticated user',
-    description: `
-Returns the logged-in user (MongoDB User).
-Optionally saves the user's notification token if provided in request body.
+    '/auth/me': {
+      get: {
+        tags: ['Auth'],
+        summary: 'Get current authenticated user and register notification token',
+        description: `
+Returns the logged-in user using Firebase UID.
+Optionally updates the user's FCM notification token if sent in headers.
     `,
-    security: [{ FirebaseUidAuth: [] }],
-    requestBody: {
-      required: false,
-      content: {
-        'application/json': {
-          schema: {
-            type: 'object',
-            properties: {
-              notificationToken: {
-                type: 'string',
-                example: 'fcm_device_token_here',
-                description: 'Optional — sent by frontend to register/update user notification token',
-              },
-            },
+        security: [{ FirebaseUidAuth: [] }],
+        parameters: [
+          {
+            name: 'x-notification-token',
+            in: 'header',
+            required: false,
+            schema: { type: 'string' },
+            description: 'Optional Firebase Cloud Messaging (FCM) device token',
+            example: 'fcm_device_token_here',
           },
-        },
-      },
-    },
-    responses: {
-      200: {
-        description: 'Current user data',
-        content: {
-          'application/json': {
-            schema: {
-              type: 'object',
-              properties: {
-                message: { type: 'string', example: 'User retrieved successfully' },
-                status: { type: 'string', example: 'active' },
-                user: { $ref: '#/components/schemas/UserShort' },
-                notificationToken: {
-                  type: 'string',
-                  example: 'fcm_device_token_here',
+        ],
+        responses: {
+          200: {
+            description: 'User or teacher request retrieved successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    message: { type: 'string', example: 'User retrieved successfully' },
+                    status: { type: 'string', example: 'active' },
+                    user: { $ref: '#/components/schemas/UserShort' },
+                    notificationToken: {
+                      type: 'string',
+                      example: 'fcm_device_token_here',
+                    },
+                  },
                 },
               },
             },
           },
-        },
-      },
-      401: {
-        description: 'Unauthorized',
-        content: {
-          'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } },
+          404: {
+            description: 'User not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          401: {
+            description: 'Unauthorized',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
         },
       },
     },
-  },
-},
-
+    '/users/deleteMe': {
+      delete: {
+        tags: ['User'],
+        summary: 'Delete my account',
+        description: `
+Deletes the authenticated user's account permanently.
+Uses firebaseUid from authentication middleware.
+    `,
+        security: [{ FirebaseUidAuth: [] }],
+        responses: {
+          204: {
+            description: 'User deleted successfully',
+          },
+          401: {
+            description: 'Unauthorized',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
 
     '/teacherRequest': {
       post: {
@@ -818,7 +845,7 @@ Optionally saves the user's notification token if provided in request body.
         tags: ['TeacherRequest'],
         summary:
           "Admin approve or reject a teacher request. Body: { status: 'approved' | 'rejected' }",
-            description: `
+        description: `
 Approves or rejects a teacher request.
 If frontend sends a notification object, it is delivered to the teacher.
     `,
@@ -830,24 +857,24 @@ If frontend sends a notification object, it is delivered to the teacher.
             'application/json': {
               schema: {
                 type: 'object',
-                                required: ['status'],
+                required: ['status'],
 
                 properties: {
                   status: { type: 'string', enum: ['approved', 'rejected'] },
                   reason: { type: 'string', description: 'optional rejection reason' },
                   notification: {
-                type: 'object',
-                nullable: true,
-                properties: {
-                  title: { type: 'string', example: 'Your application was approved' },
-                  body: { type: 'string', example: 'Welcome aboard!' },
+                    type: 'object',
+                    nullable: true,
+                    properties: {
+                      title: { type: 'string', example: 'Your application was approved' },
+                      body: { type: 'string', example: 'Welcome aboard!' },
+                    },
+                  },
                 },
               },
             },
           },
         },
-      },
-    },
         responses: {
           200: {
             description: 'Request reviewed',
@@ -2924,10 +2951,11 @@ Only accessible by admin users.
       patch: {
         tags: ['Sessions'],
         summary: 'Mark session as started',
-  description: `
+        description: `
 Marks a session as started.
 If frontend provides a {title, body} notification object, it is sent to both student and teacher.
-    `,        security: [{ FirebaseUidAuth: [] }],
+    `,
+        security: [{ FirebaseUidAuth: [] }],
         parameters: [
           {
             in: 'path',
@@ -2937,26 +2965,26 @@ If frontend provides a {title, body} notification object, it is sent to both stu
             description: 'Session ID',
           },
         ],
-          requestBody: {
-      required: false,
-      content: {
-        'application/json': {
-          schema: {
-            type: 'object',
-            properties: {
-              notification: {
+        requestBody: {
+          required: false,
+          content: {
+            'application/json': {
+              schema: {
                 type: 'object',
-                nullable: true,
                 properties: {
-                  title: { type: 'string', example: 'Session Started' },
-                  body: { type: 'string', example: 'Your session has just started.' },
+                  notification: {
+                    type: 'object',
+                    nullable: true,
+                    properties: {
+                      title: { type: 'string', example: 'Session Started' },
+                      body: { type: 'string', example: 'Your session has just started.' },
+                    },
+                  },
                 },
               },
             },
           },
         },
-      },
-    },
         responses: {
           200: {
             description: 'Session has started',
@@ -2995,26 +3023,26 @@ If notification object is provided, send to student + teacher.
             description: 'Session ID',
           },
         ],
-         requestBody: {
-      required: false,
-      content: {
-        'application/json': {
-          schema: {
-            type: 'object',
-            properties: {
-              notification: {
+        requestBody: {
+          required: false,
+          content: {
+            'application/json': {
+              schema: {
                 type: 'object',
-                nullable: true,
                 properties: {
-                  title: { type: 'string', example: 'Session Completed' },
-                  body: { type: 'string', example: 'Your session has been completed.' },
+                  notification: {
+                    type: 'object',
+                    nullable: true,
+                    properties: {
+                      title: { type: 'string', example: 'Session Completed' },
+                      body: { type: 'string', example: 'Your session has been completed.' },
+                    },
+                  },
                 },
               },
             },
           },
         },
-      },
-    },
         responses: {
           200: {
             description: 'Session completed',
@@ -3455,10 +3483,11 @@ Admin access only.
         tags: ['Events'],
         security: [{ FirebaseUidAuth: [] }],
         summary: 'Create a new event (Admin only)',
-  description: `
+        description: `
 Creates a new event with image upload and date range.
 Optionally triggers push notifications to all students IF the frontend provides a notification object.
-    `,        requestBody: {
+    `,
+        requestBody: {
           required: true,
           content: {
             'multipart/form-data': {
@@ -3482,15 +3511,15 @@ Optionally triggers push notifications to all students IF the frontend provides 
                     type: 'Number',
                     description: 'price the student will pay',
                   },
-                     notification: {
-                type: 'object',
-                nullable: true,
-                description: 'Optional — triggers notification to all students',
-                properties: {
-                  title: { type: 'string', example: 'New Event Available!' },
-                  body: { type: 'string', example: 'Check out our Ramadan offer event!' },
-                },
-              },
+                  notification: {
+                    type: 'object',
+                    nullable: true,
+                    description: 'Optional — triggers notification to all students',
+                    properties: {
+                      title: { type: 'string', example: 'New Event Available!' },
+                      body: { type: 'string', example: 'Check out our Ramadan offer event!' },
+                    },
+                  },
                 },
                 required: ['title', 'startDate', 'endDate', 'eventImage', 'price'],
               },
@@ -4109,6 +4138,146 @@ Optionally triggers push notifications to all students IF the frontend provides 
                     discountType: 'percentage',
                   },
                 },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/notifications': {
+      post: {
+        tags: ['Notifications'],
+        summary: 'Send a push notification to a specific user',
+        description: 'Sends an FCM push notification to a single user by userId.',
+        security: [{ FirebaseUidAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['userId', 'title', 'body'],
+                properties: {
+                  userId: {
+                    type: 'string',
+                    example: '690e669fc25cb849f714fb70',
+                  },
+                  title: {
+                    type: 'string',
+                    example: 'New Message',
+                  },
+                  body: {
+                    type: 'string',
+                    example: 'You have received a new message',
+                  },
+                  data: {
+                    type: 'object',
+                    description: 'Optional custom payload for frontend navigation',
+                    example: {
+                      type: 'CHAT_MESSAGE',
+                      conversationId: '693af603aacb9d3971309f9b',
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Notification sent successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string', example: 'success' },
+                    message: { type: 'string', example: 'Notification sent successfully' },
+                  },
+                },
+              },
+            },
+          },
+          400: {
+            description: 'Missing required fields or user has no token',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          404: {
+            description: 'User not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/notifications/sendToAll': {
+      post: {
+        tags: ['Notifications'],
+        summary: 'Send push notification to all active users',
+        description: `
+Sends an FCM push notification to all active users
+who have a registered notification token.
+(Admin use only)
+    `,
+        security: [{ FirebaseUidAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['title', 'body'],
+                properties: {
+                  title: {
+                    type: 'string',
+                    example: 'New Event Available',
+                  },
+                  body: {
+                    type: 'string',
+                    example: 'Check out our latest event now!',
+                  },
+                  data: {
+                    type: 'object',
+                    example: {
+                      type: 'EVENT',
+                      eventId: '693af603aacb9d3971309f9b',
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Notifications sent successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string', example: 'success' },
+                    message: {
+                      type: 'string',
+                      example: 'Notifications sent successfully',
+                    },
+                  },
+                },
+              },
+            },
+          },
+          401: {
+            description: 'Unauthorized',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
               },
             },
           },

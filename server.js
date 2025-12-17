@@ -28,6 +28,7 @@ const chatRoutes = require('./routes/chatRoutes')
 const promocodeRoutes = require('./routes/promocodeRoutes')
 const pricingRoutes = require('./routes/pricingPlanRoutes')
 const mp3Routes = require('./routes/mp3Routes')
+const notificationRoutes = require('./routes/notificationRoutes');
 const app = express();
 
 // Middleware
@@ -60,6 +61,7 @@ app.use('/api/v1/chats', chatRoutes)
 app.use('/api/v1/pricing',pricingRoutes)
 app.use('/api/v1/promocode',promocodeRoutes)
 app.use('/api/v1/upload',mp3Routes)
+app.use('/api/v1/notifications', notificationRoutes);
 // Serve Swagger UI (automatic with CSS/JS)
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 console.log('Swagger UI available at /api-docs');

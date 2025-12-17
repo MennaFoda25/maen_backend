@@ -91,9 +91,8 @@ exports.updateUser = asyncHandler(async (req, res, next) => {
       current_level: current_level ?? user.studentProfile?.current_level ?? '',
     };
   }
-if (user.role === "teacher") {
-    const { bio, specialties, hourly_rate, availabilitySchedule, certificates } =
-      req.body;
+  if (user.role === 'teacher') {
+    const { bio, specialties, hourly_rate, availabilitySchedule, certificates } = req.body;
 
     // -----------------------------
     // 1️⃣ Parse availabilitySchedule correctly
@@ -104,13 +103,11 @@ if (user.role === "teacher") {
       let scheduleData = availabilitySchedule;
 
       // If string in form-data → parse it
-      if (typeof availabilitySchedule === "string") {
+      if (typeof availabilitySchedule === 'string') {
         try {
           scheduleData = JSON.parse(availabilitySchedule);
         } catch (err) {
-          return next(
-            new ApiError("Invalid availabilitySchedule JSON format", 400)
-          );
+          return next(new ApiError('Invalid availabilitySchedule JSON format', 400));
         }
       }
 
@@ -136,8 +133,10 @@ if (user.role === "teacher") {
     const parsedSpecialties = specialties
       ? Array.isArray(specialties)
         ? specialties
-        : String(specialties).split(",").map((v) => v.trim())
-      : user.teacherProfile?.specialties ?? [];
+        : String(specialties)
+            .split(',')
+            .map((v) => v.trim())
+      : (user.teacherProfile?.specialties ?? []);
 
     // -----------------------------
     // 3️⃣ Certificates handling
@@ -145,20 +144,20 @@ if (user.role === "teacher") {
     let parsedCertificates = user.teacherProfile?.certificates ?? [];
 
     if (req.uploadedFiles?.certificates?.length > 0) {
-      parsedCertificates = req.uploadedFiles.certificates.map(
-        (c) => c.fileUrl
-      );
+      parsedCertificates = req.uploadedFiles.certificates.map((c) => c.fileUrl);
     } else if (certificates) {
       parsedCertificates = Array.isArray(certificates)
         ? certificates
-        : String(certificates).split(",").map((v) => v.trim());
+        : String(certificates)
+            .split(',')
+            .map((v) => v.trim());
     }
 
     // -----------------------------
     // 4️⃣ Build final teacher profile
     // -----------------------------
     updateData.teacherProfile = {
-      bio: bio ?? user.teacherProfile?.bio ?? "",
+      bio: bio ?? user.teacherProfile?.bio ?? '',
       specialties: parsedSpecialties,
       hourly_rate: hourly_rate ?? user.teacherProfile?.hourly_rate ?? 0,
       availabilitySchedule: parsedSchedule,
@@ -166,7 +165,6 @@ if (user.role === "teacher") {
       programPreference: user.teacherProfile?.programPreference ?? [], // do NOT overwrite
     };
   }
-
 
   const updatedUser = await User.findByIdAndUpdate(user._id, updateData, {
     new: true,
@@ -230,4 +228,11 @@ exports.suspendUser = asyncHandler(async (req, res, next) => {
 
   await user.save();
   res.json({ message: 'user status has changed susseccfully ', user });
+});
+
+exports.deleteMe = asyncHandler(async (req, res, next) => {
+  const firebaseUid = req.user.firebaseUid;
+
+  await User.findOneAndDelete({ firebaseUid });
+  res.status(204).json({ status: 'success', message: 'User deleted successfully' });
 });

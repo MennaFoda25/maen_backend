@@ -5,7 +5,7 @@ const User = require('../models/userModel');
 const factory = require('../controllers/handlerFactory');
 const Session = require('../models/sessionModel');
 const mongoose = require('mongoose');
-const sendNotification = require('../utils/sendNotification');
+const { sendNotification } = require('../utils/sendNotification');
 
 const safeJsonParse = (data, fallback = {}) => {
   return typeof data === 'string' ? JSON.parse(data) : data || fallback;
@@ -141,7 +141,7 @@ exports.reviewteacherReq = asyncHandler(async (req, res, next) => {
   // return next(new ApiError('Admin privileges required', 403));
 
   // Validate body
-  const { status,notification } = req.body;
+  const { status } = req.body;
   if (!['approved', 'rejected'].includes(status)) {
     return next(new ApiError('Status must be either "approved" or "rejected"', 400));
   }
@@ -171,11 +171,14 @@ exports.reviewteacherReq = asyncHandler(async (req, res, next) => {
         teacherProfile: teacherReq.teacherProfile,
       });
     }
+    const payload = {
+      title: 'Your Request has been approved ✅',
+      body: 'Congratulations! You are now a teacher on our platform.',
+    };
+    //await sendNotification(student, payload);
+    await sendNotification(teacherUser, payload);
   }
-      // Send notification (optional)
-  if (notification && teacherUser) {
-    await sendNotification(teacherUser, notification);
-  }
+  // Send notification (optional)
 
   teacherReq.status = status;
   await teacherReq.save();

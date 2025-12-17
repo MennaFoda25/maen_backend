@@ -8,7 +8,7 @@ const CorrectionProgram = require('../models/correctionProgramModel');
 const ChildMemorizationProgram = require('../models/childMemoProgramModel');
 const ProgramType = require('../models/programTypeModel');
 const crypto = require('crypto');
-const sendNotification = require('../utils/sendNotification');
+const { sendNotification } = require('../utils/sendNotification');
 
 // const checkOverLap = asyncHandler(async ({ teacherId, start, duration }) => {
 //   //session times
@@ -875,7 +875,6 @@ exports.createTrialSession = asyncHandler(
 
 exports.sessionCompleted = asyncHandler(async (req, res, next) => {
   const sessionId = req.params.id;
-  const { notification } = req.body;
   const session = await Session.findByIdAndUpdate(
     sessionId,
     {
@@ -892,14 +891,7 @@ exports.sessionCompleted = asyncHandler(async (req, res, next) => {
         (teacher.teacherProfile.fulfilledMinutes || 0) + (session.duration || 0)));
     await teacher.save();
   }
-
   
-  if (notification) {
-    const student = await User.findById(session.student);
-    await sendToUser(teacher, notification);
-    await sendToUser(student, notification);
-  }
-
   res.status(200).json({
     status: 'success',
     message: 'Session marked as completed',
@@ -909,7 +901,6 @@ exports.sessionCompleted = asyncHandler(async (req, res, next) => {
 
 exports.sessionStart = asyncHandler(async (req, res, next) => {
   const sessionId = req.params.id;
-  const { notification } = req.body;
   const session = await Session.findByIdAndUpdate(
     { _id: sessionId },
     {
@@ -919,12 +910,21 @@ exports.sessionStart = asyncHandler(async (req, res, next) => {
     { new: true }
   );
 
-  if (notification) {
-    const teacher = await User.findById(session.teacher);
-    const student = await User.findById(session.student);
-    await sendToUser(teacher, notification);
-    await sendToUser(student, notification);
-  }
+  const student = await User.findById(session.student);
+const teacher = await User.findById(session.teacher);
+
+const payload = {
+  title: 'Session Started ⏰',
+  body: 'Your session has just started.',
+  data: {
+    sessionId: session._id.toString(),
+    type: 'session',
+  },
+};
+
+await sendNotification(student, payload);
+await sendNotification(teacher, payload);
+
   res.status(200).json({
     status: 'success',
     message: 'Session has started',

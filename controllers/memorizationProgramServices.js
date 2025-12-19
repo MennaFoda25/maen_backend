@@ -107,34 +107,11 @@ exports.createMemorizationProgram = asyncHandler(async (req, res, next) => {
 
   let createdSessions = [];
 
-  // if (teacher) {
-  //   try {
-  //     createdSessions = await generatePlanSessionsForProgram(newProgram, teacher);
-  //   } catch (err) {
-  //     console.error('Error generating plan sessions:', err.message);
-  //     // Continue even if session generation fails - the program is created
-  //   }
-  // }
+
 
   let populatedTrial = null;
 
-  // if (req.body.trialSession && req.body.teacher) {
-  //   const trial = await createTrialSession({
-  //     programId: newProgram._id,
-  //     programModel: 'MemorizationProgram',
-  //     studentId: req.user._id,
-  //     teacherId: newProgram.teacher,
-  //     preferredTimes: newProgram.preferredTimes,
-  //     days: newProgram.days,
-  //   });
-
-  //   populatedTrial = (await trial)
-  //     ? await Session.findById(trial._id)
-  //         .populate('student', 'name email')
-  //         .populate('teacher', 'name email')
-  //     : null;
-  // }
-
+ 
   // Populate for response
   const populatedProgram = await MemorizationProgram.findById(newProgram._id).populate(
     'student',

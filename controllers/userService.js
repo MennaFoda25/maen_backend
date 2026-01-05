@@ -79,7 +79,7 @@ exports.updateUser = asyncHandler(async (req, res, next) => {
   // };
 
   if (user.role === 'student') {
-    const { learning_goals, current_level, preferredTimes } = req.body;
+    const { learning_goals, current_level, preferredDays } = req.body;
     updateData.studentProfile = {
       learning_goals: learning_goals
         ? Array.isArray(learning_goals)

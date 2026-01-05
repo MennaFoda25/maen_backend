@@ -36,29 +36,16 @@ exports.createMemorizationProgram = asyncHandler(async (req, res, next) => {
     return next(new ApiError('only active student can create a memorization program', 403));
   }
 
-  let preferredTimes = toArray(req.body.preferredTimes);
+  const preferredDays = Array.isArray(req.body.preferredDays)
+    ? req.body.preferredDays.map((d) => d.toLowerCase())
+    : []; 
 
-  const invalid = preferredTimes.some(
-    (pt) =>
-      !pt ||
-      !pt.day ||
-      !pt.start ||
-      !pt.end ||
-      typeof pt.day !== 'string' ||
-      !/^([01]\d|2[0-3]):[0-5]\d$/.test(pt.start) ||
-      !/^([01]\d|2[0-3]):[0-5]\d$/.test(pt.end)
-  );
 
-  if (invalid || preferredTimes.length === 0) {
-    return next(
-      new ApiError('preferredTimes must be an array of objects: { day, start, end }', 400)
-    );
+  if (preferredDays.length === 0) {
+    return next(new ApiError('preferredDays is required', 400));
   }
 
-  // if (!days.length) {
-  //   return next(new ApiError('preferredTimes must include at least one day', 400));
-  // }
-
+ 
   const newProgram = await MemorizationProgram.create({
     firebaseUid: student.firebaseUid,
     student: student._id,
@@ -70,7 +57,7 @@ exports.createMemorizationProgram = asyncHandler(async (req, res, next) => {
     weeklySessions: req.body.weeklySessions,
     sessionDuration: req.body.sessionDuration,
     packageDuration: req.body.packageDuration,
-    preferredTimes: preferredTimes,
+    preferredDays,
     memorizationRange: {
       fromSurah: req.body.fromSurah,
       fromAyah: req.body.fromAyah,
@@ -107,11 +94,8 @@ exports.createMemorizationProgram = asyncHandler(async (req, res, next) => {
 
   let createdSessions = [];
 
-
-
   let populatedTrial = null;
 
- 
   // Populate for response
   const populatedProgram = await MemorizationProgram.findById(newProgram._id).populate(
     'student',

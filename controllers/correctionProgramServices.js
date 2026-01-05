@@ -8,17 +8,17 @@ const factory = require('../controllers/handlerFactory');
 const ProgramType = require('../models/programTypeModel');
 
 // Helper to safely convert strings or arrays into array of strings
-const toArray = (value) => {
-  if (!value) return [];
-  if (Array.isArray(value)) return value;
-  if (typeof value === 'object') return [value];
+// const toArray = (value) => {
+//   if (!value) return [];
+//   if (Array.isArray(value)) return value;
+//   if (typeof value === 'object') return [value];
 
-  // string "a,b" → array ["a", "b"]
-  return String(value)
-    .split(',')
-    .map((v) => v.trim())
-    .filter(Boolean);
-};
+//   // string "a,b" → array ["a", "b"]
+//   return String(value)
+//     .split(',')
+//     .map((v) => v.trim())
+//     .filter(Boolean);
+// };
 
 // @desc    Create new Correction Program for student
 // @route   POST /api/v1/programs/correction
@@ -31,28 +31,13 @@ exports.createCorrectionProgram = asyncHandler(async (req, res, next) => {
     return next(new ApiError('Only active student can proceed', 403));
   }
   // Auto-extract days from preferredTimes
-  let preferredTimes  = toArray(req.body.preferredTimes);
-    // Each item must have: { day, start, end }
-  const invalid = preferredTimes.some(
-    (pt) =>
-      !pt ||
-      !pt.day ||
-      !pt.start ||
-      !pt.end ||
-      typeof pt.day !== 'string' ||
-      !/^([01]\d|2[0-3]):[0-5]\d$/.test(pt.start) ||
-      !/^([01]\d|2[0-3]):[0-5]\d$/.test(pt.end)
-  );
+  const preferredDays = Array.isArray(req.body.preferredDays)
+    ? req.body.preferredDays.map((d) => d.toLowerCase())
+    : [];
 
-  if (invalid || preferredTimes.length === 0) {
-    return next(
-      new ApiError(
-        'preferredTimes must be an array of objects: { day, start, end }',
-        400
-      )
-    );
+  if (preferredDays.length === 0) {
+    return next(new ApiError('preferredDays are required', 400));
   }
-
 
   const newProgram = await CorrectionProgram.create({
     student: student._id,
@@ -60,10 +45,14 @@ exports.createCorrectionProgram = asyncHandler(async (req, res, next) => {
     currentLevel: req.body.currentLevel,
     weeklySessions: req.body.weeklySessions,
     sessionDuration: req.body.sessionDuration,
-    preferredTimes: preferredTimes,
+    preferredDays,
     planName: req.body.planName,
-    fromSurah: req.body.fromSurah,
-    toSurah: req.body.toSurah,
+    targetParts: {
+      fromSurah: req.body.fromSurah,
+      fromAyah: req.body.fromAyah,
+      toSurah: req.body.toSurah,
+      toAyah: req.body.toAyah,
+    },
     audioReferences: req.body.audioReferences,
     pagesPerSession: req.body.pagesPerSession,
     totalPages: req.body.totalPages,
@@ -74,59 +63,34 @@ exports.createCorrectionProgram = asyncHandler(async (req, res, next) => {
     status: 'active',
   });
 
-  const program = await CorrectionProgram.findById(newProgram._id)
-  if(!program) return next(new ApiError('Program could not be created',500));
+  const program = await CorrectionProgram.findById(newProgram._id);
+  if (!program) return next(new ApiError('Program could not be created', 500));
 
-const programModel = program.programTypeKey;
-// STEP 3 — Validate ProgramType exists
+  const programModel = program.programTypeKey;
+  // STEP 3 — Validate ProgramType exists
   const programType = await ProgramType.findOne({ key: programModel });
   if (!programType) {
-    console.log("❌ ProgramType not found for key:", programModel); // debugging
-    return next(new ApiError("ProgramType not found for this program", 404));
+    console.log('❌ ProgramType not found for key:', programModel); // debugging
+    return next(new ApiError('ProgramType not found for this program', 404));
   }
 
+  let createdSessions = [];
+  let populatedTrial = null;
 
-  let createdSessions = []
-  let populatedTrial = null
-  // if (teacher) {
-  //   try {
-  //     createdSessions = await generatePlanSessionsForProgram(newProgram, teacher);
-  //   } catch (err) {
-  //     console.error('Error generating plan sessions:', err.message);
-  //     // Continue even if session generation fails - the program is created
-  //   }
-  // }
-
-  // let populatedTrial = null;
-
-  //const programData = await CorrectionProgram.findById(newProgram._id);
-  // if (req.body.trialSession && req.body.teacher) {
-  //   const trial = await createTrialSession({
-  //     programId: newProgram._id,
-  //     programModel: 'CorrectionProgram',
-  //     studentId: req.user._id,
-  //     teacherId: newProgram.teacher,
-  //     preferredTimes: newProgram.preferredTimes,
-  //     days: newProgram.days,
-  //   });
-  //   populatedTrial = (await trial)
-  //     ? await Session.findById(trial._id)
-  //         .populate('student', 'name email')
-  //         .populate('teacher', 'name email')
-  //     : null;
-  // }
   // Populate for response
-  const populatedProgram = await CorrectionProgram.findById(newProgram._id)
-    .populate('student', 'name email')
+  const populatedProgram = await CorrectionProgram.findById(newProgram._id).populate(
+    'student',
+    'name email'
+  );
 
   res.status(201).json({
     status: 'success',
     message: 'Correction program created successfully',
     data: {
       program: populatedProgram,
-      trialSession: populatedTrial,
-     createdSessions: createdSessions.length,
-      createdSessions,
+    //  trialSession: populatedTrial,
+      createdSessions: createdSessions.length,
+     // createdSessions,
     },
   });
 });
@@ -192,4 +156,3 @@ exports.getAssignedTeacherTrials = asyncHandler(async (req, res, next) => {
   }
   res.status(200).json({ status: 'success', count: trialSession.length, data: { trialSession } });
 });
-

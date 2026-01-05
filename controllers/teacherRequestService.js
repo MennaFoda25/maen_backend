@@ -171,12 +171,12 @@ exports.reviewteacherReq = asyncHandler(async (req, res, next) => {
         teacherProfile: teacherReq.teacherProfile,
       });
     }
-    const payload = {
-      title: 'Your Request has been approved ✅',
-      body: 'Congratulations! You are now a teacher on our platform.',
-    };
+    // const payload = {
+    //   title: 'Your Request has been approved ✅',
+    //   body: 'Congratulations! You are now a teacher on our platform.',
+    // };
     //await sendNotification(student, payload);
-    await sendNotification(teacherUser, payload);
+   // await sendNotification(teacherUser, payload);
   }
   // Send notification (optional)
 
@@ -368,3 +368,5 @@ exports.rateTeacher = asyncHandler(async (req, res, next) => {
     },
   });
 });
+
+

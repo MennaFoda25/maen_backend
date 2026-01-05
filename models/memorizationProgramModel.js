@@ -1,27 +1,5 @@
-// models/MemorizationProgram.js
 const mongoose = require('mongoose');
 const crypto = require('crypto');
-const perferredTimeSchema = new mongoose.Schema(
-  {
-    day: {
-      type: String,
-      required: true,
-      enum: ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
-    },
-    start: {
-      type: String,
-      required: true,
-      match: [/^([01]\d|2[0-3]):[0-5]\d$/, 'Invalid start time format, expected HH:MM'],
-    },
-
-    end: {
-      type: String,
-      required: true,
-      match: [/^([01]\d|2[0-3]):[0-5]\d$/, 'Invalid end time format, expected HH:MM'],
-    },
-  },
-  { _id: false }
-);
 
 const memorizationProgramSchema = new mongoose.Schema(
   {
@@ -55,15 +33,35 @@ const memorizationProgramSchema = new mongoose.Schema(
     // 🔹 Scheduling
     weeklySessions: { type: Number, enum: [1, 2, 3, 4, 5], required: true },
     sessionDuration: { type: Number, enum: [15, 30, 45, 60], required: true },
-    preferredTimes: {
-      type: [perferredTimeSchema],
-      validate: [(v) => Array.isArray(v) && v.length > 0, 'Preferred times are required'],
+    preferredDays: {
+      type: [String],
+      enum: ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
+      validate: [(v) => v.length > 0, 'At least one day is required'],
     },
     packageDuration: {
       type: Number,
-      enum: [1, 3, 6],
+      enum: [1, 3, 6,12],
       required: true,
     },
+
+    reservedSlots: [
+  {
+    day: {
+      type: String,
+      enum: ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'],
+      required: true,
+    },
+    start: {
+      type: String, // "18:00"
+      required: true,
+    },
+    duration: {
+      type: Number, // minutes
+      required: true,
+    }
+  }
+],
+
 
      trialSession: {
       type: Boolean,

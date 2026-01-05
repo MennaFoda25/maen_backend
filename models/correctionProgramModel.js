@@ -1,28 +1,6 @@
 const mongoose = require('mongoose');
 const crypto = require('crypto');
 
-const perferredTimeSchema = new mongoose.Schema(
-  {
-    day: {
-      type: String,
-      required: true,
-      enum: ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
-    },
-    start: {
-      type: String,
-      required: true,
-      match: [/^([01]\d|2[0-3]):[0-5]\d$/, 'Invalid start time format, expected HH:MM'],
-    },
-
-    end: {
-      type: String,
-      required: true,
-      match: [/^([01]\d|2[0-3]):[0-5]\d$/, 'Invalid end time format, expected HH:MM'],
-    },
-  },
-  { _id: false }
-);
-
 const correctionProgramSchema = new mongoose.Schema(
   {
     student: {
@@ -69,21 +47,20 @@ const correctionProgramSchema = new mongoose.Schema(
       enum: [15, 30, 45, 60],
       required: [true, 'Session duration is required'],
     },
-    preferredTimes: {
-      type: [perferredTimeSchema],
-      validate: [(v) => Array.isArray(v) && v.length > 0, 'Preferred times are required'],
+    preferredDays: {
+      type: [String],
+      enum: ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
+      validate: [(v) => v.length > 0, 'At least one day is required'],
     },
     planName: {
       type: String,
       required: true,
     },
-    fromSurah: {
-      type: String,
-      required: [true, 'Starting surah is required'],
-    },
-    toSurah: {
-      type: String,
-      required: [true, 'Ending surah is required'],
+    targetParts: {
+      fromSurah: String,
+      fromAyah: Number,
+      toSurah: String,
+      toAyah: Number,
     },
 
     audioReferences: { type: String },
@@ -96,9 +73,28 @@ const correctionProgramSchema = new mongoose.Schema(
     },
     packageDuration: {
       type: Number,
-      enum: [1, 3, 6],
+      enum: [1, 3, 6, 12],
       required: true,
     },
+
+    reservedSlots: [
+      {
+        day: {
+          type: String,
+          enum: ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
+          required: true,
+        },
+        start: {
+          type: String, // "18:00"
+          required: true,
+        },
+        duration: {
+          type: Number, // minutes
+          required: true,
+        },
+      },
+    ],
+
     totalPages: {
       type: Number,
     },

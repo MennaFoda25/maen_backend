@@ -66,15 +66,6 @@ const sessionSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
-    preferredTimes: {
-      type: [String],
-      // enum: ['6-9_am', '10-1_pm', '2-5_pm', '6-9_pm', '10-1_am'],
-    }, // e.g. ['evening', 'afternoon']
-    days: {
-      type: [String],
-      enum: ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
-      required: true,
-    },
     completedAt: Date,
     startedAt:Date
   },

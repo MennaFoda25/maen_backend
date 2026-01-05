@@ -33,35 +33,16 @@ exports.createChildMemProgram = asyncHandler(async (req, res, next) => {
   const parent = await User.findById(req.user._id);
   if (!parent) return next(new ApiError('Parent not found', 404));
 
-  let preferredTimes = toArray(req.body.preferredTimes);
-  // Each item must have: { day, start, end }
-  const invalid = preferredTimes.some(
-    (pt) =>
-      !pt ||
-      !pt.day ||
-      !pt.start ||
-      !pt.end ||
-      typeof pt.day !== 'string' ||
-      !/^([01]\d|2[0-3]):[0-5]\d$/.test(pt.start) ||
-      !/^([01]\d|2[0-3]):[0-5]\d$/.test(pt.end)
-  );
-
-  if (invalid || preferredTimes.length === 0) {
+    // Auto-extract days from preferredTimes
+  const preferredDays = Array.isArray(req.body.preferredDays)
+    ? req.body.preferredDays.map((d) => d.toLowerCase())
+    : [];
+  if ( preferredDays.length === 0) {
     return next(
-      new ApiError('preferredTimes must be an array of objects: { day, start, end }', 400)
+      new ApiError('preferredDays are required', 400)
     );
   }
 
-  // Auto-extract days from preferredTimes
-  //let days = [];
-
-  // if (Array.isArray(req.body.preferredTimes)) {
-  //   days = req.body.preferredTimes.map((pt) => pt.day).filter(Boolean); // remove null/undefined
-  // }
-
-  // if (!days.length) {
-  //   return next(new ApiError('preferredTimes must include at least one day', 400));
-  // }
 
   const payload = {
     firebaseUid: parent.firebaseUid,
@@ -75,7 +56,7 @@ exports.createChildMemProgram = asyncHandler(async (req, res, next) => {
     mainGoal: req.body.mainGoal,
     weeklySessions: req.body.weeklySessions,
     sessionDuration: req.body.sessionDuration,
-    preferredTimes: preferredTimes,
+    preferredDays,
     teacherGender: req.body.teacherGender,
     notesForTeacher: req.body.notesForTeacher,
     planName: req.body.planName,
@@ -108,26 +89,6 @@ exports.createChildMemProgram = asyncHandler(async (req, res, next) => {
     return next(new ApiError('ProgramType not found for this program', 404));
   }
 
-  // // Optional: create a trial session if requested and a teacher chosen
-  // let populatedTrial = null;
-  // //const programData = await ChildProgram.findById(program._id);
-  // if (req.body.trialSession && req.body.teacher) {
-  //   const trial = await createTrialSession({
-  //     programId: newProgram._id,
-  //     programModel: 'ChildMemorizationProgram',
-  //     studentId: req.user._id,
-  //     teacherId: newProgram.teacher,
-  //     preferredTimes: newProgram.preferredTimes,
-  //     days: newProgram.days,
-  //   });
-
-  // populatedTrial = (await trial)
-  //   ? await Session.findById(trial._id)
-  //       .populate('student', 'name email')
-  //       .populate('teacher', 'name email')
-  //   : null;
-  //   const teacherId = req.body.teacher || req.body.assignedTeacher;
-  //   // trial = await createTrialSession(newProgram, teacherId, req.user._id, 'MemorizationProgram');
 
   let createdSessions = [];
   let populatedTrial = null;
@@ -140,9 +101,9 @@ exports.createChildMemProgram = asyncHandler(async (req, res, next) => {
     message: 'Child memorization program created',
     data: {
       program: populated,
-      trialSession: populatedTrial,
-      createdSessions: createdSessions.length,
-      createdSessions,
+    //  trialSession: populatedTrial,
+    //  createdSessions: createdSessions.length,
+    //  createdSessions,
     },
   });
 });

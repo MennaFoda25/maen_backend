@@ -7,8 +7,8 @@ module.exports = {
   },
   servers: [
     {
-      // url: 'http://localhost:3000/api/v1',
-      url: 'https://maen-backend.onrender.com/api/v1',
+      //url: 'http://localhost:3000/api/v1',
+       url: 'https://maen-backend.onrender.com/api/v1',
       // description: 'local dev server',
       description:
         process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server',
@@ -113,6 +113,47 @@ module.exports = {
             },
           },
           createdAt: { type: 'string' },
+        },
+      },
+      ReservedSlot: {
+        type: 'object',
+        required: ['day', 'start', 'duration'],
+        properties: {
+          day: {
+            type: 'string',
+            example: 'monday',
+            enum: ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
+          },
+          start: {
+            type: 'string',
+            example: '17:00',
+            pattern: '^([01]\\d|2[0-3]):[0-5]\\d$',
+          },
+          duration: {
+            type: 'integer',
+            example: 30,
+            description: 'Duration in minutes',
+          },
+        },
+      },
+
+      AvailabilityDay: {
+        type: 'object',
+        properties: {
+          day: {
+            type: 'string',
+            example: 'monday',
+          },
+          slots: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                start: { type: 'string', example: '16:00' },
+                end: { type: 'string', example: '19:00' },
+              },
+            },
+          },
         },
       },
 
@@ -289,7 +330,7 @@ module.exports = {
           currentLevel: { type: 'String', example: 'beginner or intermediate or advanced' },
           weeklySessions: { type: 'Number', example: '1 , 2,3,4,5' },
           sessionDuration: { type: 'Number', example: '15,30,45,60' },
-          preferredTimes: {
+          preferredDays: {
             type: 'array',
             items: {
               type: 'object',
@@ -320,8 +361,15 @@ module.exports = {
           },
           planName: { type: 'String' },
           packageDuration: { type: 'Number' },
-          fromSurah: { type: 'String' },
-          toSurah: { type: 'String' },
+            targetParts: {
+            type: 'object',
+            properties: {
+              fromSurah: { type: 'string', example: 'Al-Fatihah' },
+              fromAyah: { type: 'number', example: 1 },
+              toSurah: { type: 'string', example: 'An-Naba' },
+              toAyah: { type: 'number', example: 40 },
+            },
+          },
           audioReferences: { type: 'String' },
           pagesPerSession: { type: 'Number' },
           totalPages: { type: 'Number' },
@@ -363,7 +411,7 @@ module.exports = {
           sessionDuration: { type: 'number', example: 30 },
           packageDuration: { type: 'number' },
 
-          preferredTimes: {
+          preferredDays: {
             type: 'array',
             items: {
               type: 'object',
@@ -464,7 +512,7 @@ module.exports = {
           sessionDuration: { type: 'number', example: 30 },
           packageDuration: { type: 'number' },
 
-          preferredTimes: {
+          preferredDays: {
             type: 'array',
             items: {
               type: 'object',
@@ -1110,55 +1158,7 @@ Only works if role="admin" is sent in the request body.
           },
         },
       },
-      //   patch: {
-      //     tags: ['Admin'],
-      //     summary: 'Update user data (admin only)',
-      //     security: [{ bearerAuth: [] }],
-      //     parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-      //     requestBody: {
-      //       required: true,
-      //       content: {
-      //         'application/json': {
-      //           schema: {
-      //             type: 'object',
-      //             properties: {
-      //               name: { type: 'string' },
-      //               email: { type: 'string' },
-      //               role: { type: 'string', enum: ['student', 'teacher', 'admin'] },
-      //             },
-      //           },
-      //         },
-      //       },
-      //     },
-      //     responses: {
-      //       200: {
-      //         description: 'User updated successfully',
-      //         content: {
-      //           'application/json': {
-      //             schema: { $ref: '#/components/schemas/UserShort' },
-      //           },
-      //         },
-      //       },
-      //       401: {
-      //         description: 'Unauthorized',
-      //         content: {
-      //           'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } },
-      //         },
-      //       },
-      //       403: {
-      //         description: 'Forbidden (admin only)',
-      //         content: {
-      //           'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } },
-      //         },
-      //       },
-      //       404: {
-      //         description: 'User not found',
-      //         content: {
-      //           'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } },
-      //         },
-      //       },
-      //     },
-      //   },
+   
       delete: {
         tags: ['Admin'],
         summary: 'Delete a user (admin only)',
@@ -1417,7 +1417,7 @@ Only works if role="admin" is sent in the request body.
                   sessionDuration: { type: 'number', example: 30 },
                   packageDuration: { type: 'number', example: 1 },
 
-                  preferredTimes: {
+                  preferredDays: {
                     type: 'array',
                     description: 'List of preferred time slots',
                     items: {
@@ -1620,7 +1620,7 @@ Requires Firebase authentication.
                   weeklySessions: { type: 'number', example: 3 },
                   sessionDuration: { type: 'number', example: 30 },
                   packageDuration: { type: 'number', example: 1 },
-                  preferredTimes: {
+                  preferredDays: {
                     type: 'array',
                     description: 'List of preferred time slots',
                     items: {
@@ -1842,7 +1842,7 @@ Requires Firebase authentication.
                   sessionDuration: { type: 'number', example: 30 },
                   packageDuration: { type: 'number', example: 1 },
 
-                  preferredTimes: {
+                  preferredDays: {
                     type: 'array',
                     description: 'List of preferred time slots',
                     items: {
@@ -1906,7 +1906,7 @@ Requires Firebase authentication.
                   'memorizationDirection',
                   'weeklySessions',
                   'sessionDuration',
-                  'preferredTimes',
+                  'preferredDays',
                   'days',
                 ],
               },
@@ -2283,11 +2283,20 @@ Also triggers:
             'application/json': {
               schema: {
                 type: 'object',
-                required: ['teacherId'],
+                required: ['teacherId', 'reservedSlots'],
                 properties: {
                   teacherId: {
                     type: 'string',
                     example: '6915e2350b32ecdcf4bacb12',
+                  },
+                  reservedSlots: {
+                    type: 'array',
+                    description: 'Must match weeklySessions exactly',
+                    items: { $ref: '#/components/schemas/ReservedSlot' },
+                    example: [
+                      { day: 'monday', start: '17:00', duration: 30 },
+                      { day: 'wednesday', start: '19:00', duration: 30 },
+                    ],
                   },
                 },
               },
@@ -2341,9 +2350,9 @@ Also triggers:
     '/programs/available/{id}': {
       get: {
         tags: ['Programs'],
-        summary: 'Get teachers whose availability matches the program preferred times',
+        summary: 'Get teachers whose availability matches the program preferred days',
         description: `
-Returns teachers whose weekly availability matches the program's preferredTimes.
+Returns teachers whose weekly availability matches the program's preferredDays.
 Works for:
 - Correction Programs
 - Memorization Programs
@@ -2371,7 +2380,7 @@ Works for:
                     count: { type: 'number' },
                     programId: { type: 'string' },
                     programModel: { type: 'string' },
-                    preferredTimes: {
+                    preferredDays: {
                       type: 'array',
                       items: {
                         type: 'object',
@@ -2399,7 +2408,7 @@ Works for:
             },
           },
           400: {
-            description: 'PreferredTimes missing or invalid',
+            description: 'PreferredDays missing or invalid',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/ErrorResponse' },
@@ -2816,137 +2825,6 @@ Only accessible by admin users.
         },
       },
     },
-    // '/sessions/book': {
-    //   post: {
-    //     tags: ['Sessions'],
-    //     security: [{ FirebaseUidAuth: [] }],
-    //     summary: 'Book a single session for a program',
-    //     requestBody: {
-    //       required: true,
-    //       content: {
-    //         'application/json': {
-    //           schema: {
-    //             type: 'object',
-    //             required: ['programId', 'programModel', 'teacherId', 'scheduledAt'],
-    //             properties: {
-    //               programId: {
-    //                 type: 'string',
-    //                 example: '677bf39fdd4f30f40cb15f94',
-    //               },
-    //               programModel: {
-    //                 type: 'string',
-    //                 enum: ['CorrectionProgram', 'MemorizationProgram', 'ChildMemorizationProgram'],
-    //                 example: 'MemorizationProgram',
-    //               },
-    //               teacherId: {
-    //                 type: 'string',
-    //                 example: '677a89d55b31812cd45dc342',
-    //               },
-    //               scheduledAt: {
-    //                 type: 'object',
-    //                 properties: {
-    //                   day: {
-    //                     type: 'string',
-    //                     enum: [
-    //                       'sunday',
-    //                       'monday',
-    //                       'tuesday',
-    //                       'wednesday',
-    //                       'thursday',
-    //                       'friday',
-    //                       'saturday',
-    //                     ],
-    //                     example: 'monday',
-    //                   },
-    //                   start: {
-    //                     type: 'string',
-    //                     example: '15:00',
-    //                   },
-    //                 },
-    //               },
-    //               scheduledAtDate: {
-    //                 type: 'string',
-    //                 format: 'date-time',
-    //                 example: '2025-03-02T15:00:00.000Z',
-    //               },
-    //             },
-    //           },
-    //         },
-    //       },
-    //     },
-    //     responses: {
-    //       201: {
-    //         description: 'Session booked successfully',
-    //         content: {
-    //           'application/json': {
-    //             schema: { $ref: '#/components/schemas/Session' },
-    //           },
-    //         },
-    //       },
-    //       400: { description: 'Invalid time or teacher not available' },
-    //       403: { description: 'Teacher inactive or blocked' },
-    //       404: { description: 'Program or teacher not found' },
-    //     },
-    //   },
-    // },
-    // '/sessions/{id}/generatePlan': {
-    //   post: {
-    //     tags: ['Sessions'],
-    //     security: [{ FirebaseUidAuth: [] }],
-    //     summary: 'Generate full recurring schedule for a program',
-    //     parameters: [
-    //       {
-    //         in: 'path',
-    //         name: 'id',
-    //         required: true,
-    //         schema: { type: 'string' },
-    //         description: 'Program ID',
-    //       },
-    //     ],
-    //     requestBody: {
-    //       required: true,
-    //       content: {
-    //         'application/json': {
-    //           schema: {
-    //             type: 'object',
-    //             required: ['programModel'],
-    //             properties: {
-    //               programModel: {
-    //                 type: 'string',
-    //                 enum: ['CorrectionProgram', 'MemorizationProgram', 'ChildMemorizationProgram'],
-    //                 example: 'CorrectionProgram',
-    //               },
-    //             },
-    //           },
-    //         },
-    //       },
-    //     },
-    //     responses: {
-    //       201: {
-    //         description: 'Plan sessions generated successfully',
-    //         content: {
-    //           'application/json': {
-    //             schema: {
-    //               type: 'object',
-    //               properties: {
-    //                 status: { type: 'string', example: 'success' },
-    //                 totalCreated: { type: 'number', example: 12 },
-    //                 sessions: {
-    //                   type: 'array',
-    //                   items: { $ref: '#/components/schemas/Session' },
-    //                 },
-    //               },
-    //             },
-    //           },
-    //         },
-    //       },
-    //       400: { description: 'Invalid preferred times or missing data' },
-    //       403: { description: 'Teacher is not dedicated to this program type' },
-    //       404: { description: 'Program or teacher not found' },
-    //     },
-    //   },
-    // },
-
     '/sessions/{id}/start': {
       patch: {
         tags: ['Sessions'],
@@ -3375,7 +3253,7 @@ Admin access only.
                           },
                           scheduledAt: { type: 'string', format: 'date-time' },
                           meetingId: { type: 'string', example: 'a41c9bb92c17e2ef' },
-                          preferredTimes: {
+                          preferredDays: {
                             type: 'array',
                             items: { type: 'string' },
                             example: ['6-9_am', '2-5_pm'],

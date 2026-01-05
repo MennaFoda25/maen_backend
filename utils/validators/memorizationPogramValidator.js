@@ -32,10 +32,10 @@ exports.createMemoProgramValidator = [
     .withMessage('Session duration must be between 15 and 60 minutes'),
 
   // 🕒 Preferred times and days
-  check('preferredTimes')
+  check('preferredDays')
     .optional()
     .isArray()
-    .withMessage('Preferred times must be an array')
+    .withMessage('Preferred days must be an array')
     // .custom((arr) => {
     //   const allowed = ['6-9_am', '10-1_pm', '2-5_pm', '6-9_pm', '10-1_am'];
     //   const invalid = arr.filter((t) => !allowed.includes(t));

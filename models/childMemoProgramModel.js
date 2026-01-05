@@ -11,27 +11,7 @@ const memorizationRangeSchema = new mongoose.Schema(
   { _id: false }
 );
 
-const perferredTimeSchema = new mongoose.Schema(
-  {
-    day: {
-      type: String,
-      required: true,
-      enum: ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
-    },
-    start: {
-      type: String,
-      required: true,
-      match: [/^([01]\d|2[0-3]):[0-5]\d$/, 'Invalid start time format, expected HH:MM'],
-    },
 
-    end: {
-      type: String,
-      required: true,
-      match: [/^([01]\d|2[0-3]):[0-5]\d$/, 'Invalid end time format, expected HH:MM'],
-    },
-  },
-  { _id: false }
-);
 const childMemProgramSchema = new mongoose.Schema(
   {
     firebaseUid: { type: String, required: true, index: true },
@@ -61,15 +41,11 @@ const childMemProgramSchema = new mongoose.Schema(
     },
     weeklySessions: { type: Number, enum: [2, 3, 4, 5], required: true },
     sessionDuration: { type: Number, enum: [15, 30, 45, 60], required: true },
-    // days: {
-    //   type: [String],
-    //   enum: ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
-    //   validate: [(arr) => arr.length <= 5, 'Cannot exceed 5 days per week'],
-    //   default: [],
-    // },
-    preferredTimes: {
-      type: [perferredTimeSchema],
-      validate: [(v) => Array.isArray(v) && v.length > 0, 'Preferred times are required'],
+
+  preferredDays: {
+      type: [String],
+      enum: ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
+      validate: [(v) => v.length > 0, 'At least one day is required'],
     },
     // Teacher/session preferences
     teacherGender: {
@@ -94,9 +70,27 @@ const childMemProgramSchema = new mongoose.Schema(
     progressPercent: { type: Number, default: 0 },
     packageDuration: {
       type: Number,
-      enum: [1, 3, 6],
+      enum: [1, 3, 6,12],
       required: true,
     },
+
+       reservedSlots: [
+  {
+    day: {
+      type: String,
+      enum: ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'],
+      required: true,
+    },
+    start: {
+      type: String, // "18:00"
+      required: true,
+    },
+    duration: {
+      type: Number, // minutes
+      required: true,
+    }
+  }
+],
     // Admin / assignment
     teacher: { type: mongoose.Schema.ObjectId, ref: 'User' }, // assigned later
     trialSession: {

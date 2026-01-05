@@ -8,7 +8,8 @@ const {
   assignTeacherToProgram,
   getAllLoggedStudentPrograms,
   deleteProgram,
-  getAvailableTeachersByPreferredTimes,
+  getAvailableTeachersByPreferredDays,
+  getTeacherScheduleWithAvailability
 } = require('../controllers/programServices');
 
 router.use(firebaseAuth);
@@ -16,7 +17,8 @@ router.get('/', getProgramTypes);
 router.get('/:id', getTeachersByProgramType);
 router.get('/student/myPrograms', allowedTo('student'), getAllLoggedStudentPrograms);
 router.delete('/student/:id', allowedTo('student'), deleteProgram);
-router.get('/available/:id', allowedTo('student'), getAvailableTeachersByPreferredTimes);
+router.get('/available/:id', allowedTo('student'), getAvailableTeachersByPreferredDays);
 router.patch('/assignTeacher/:id', allowedTo('student'), assignTeacherToProgram);
+
 //router.post("/",allowedTo('admin'), addPrograms)
 module.exports = router;

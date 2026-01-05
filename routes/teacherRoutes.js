@@ -19,6 +19,7 @@ const {
   getTopTeachers,
   getProgramTeachers,
   getTeacherSchedulesById,
+  getTeacherScheduleWithAvailability
 } = require('../controllers/programServices');
 const { firebaseAuth } = require('../middlewares/firebaseAuth');
 
@@ -39,6 +40,6 @@ router.patch(
 );
 router.get('/mySessions', allowedTo('teacher'), getTeacherSessions);
 router.route('/:id').get(getSpecificTeacherData);
-router.get('/:id/schedules', allowedTo('student', 'admin'), getTeacherSchedulesById);
+router.get('/:id/schedules', allowedTo('student', 'admin'), getTeacherScheduleWithAvailability);
 
 module.exports = router;

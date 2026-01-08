@@ -7,7 +7,7 @@ module.exports = {
   },
   servers: [
     {
-      //url: 'http://localhost:3000/api/v1',
+     // url: 'http://localhost:3000/api/v1',
        url: 'https://maen-backend.onrender.com/api/v1',
       // description: 'local dev server',
       description:
@@ -348,15 +348,11 @@ module.exports = {
                   ],
                   example: 'sunday',
                 },
-                start: {
-                  type: 'string',
-                  example: '17:00',
-                },
+            
               },
             },
             example: [
-              { day: 'sunday', start: '17:00' },
-              { day: 'tuesday', start: '17:00' },
+              'sunday' ,'tuesday' ,
             ],
           },
           planName: { type: 'String' },
@@ -429,15 +425,11 @@ module.exports = {
                   ],
                   example: 'sunday',
                 },
-                start: {
-                  type: 'string',
-                  example: '17:00',
-                },
+            
               },
             },
             example: [
-              { day: 'sunday', start: '17:00' },
-              { day: 'tuesday', start: '17:00' },
+             'sunday' , 'tuesday' ,
             ],
           },
 
@@ -530,15 +522,11 @@ module.exports = {
                   ],
                   example: 'sunday',
                 },
-                start: {
-                  type: 'string',
-                  example: '17:00',
-                },
+               
               },
             },
-            example: [
-              { day: 'sunday', start: '17:00' },
-              { day: 'tuesday', start: '17:00' },
+            example: [ 'sunday' ,
+              'tuesday' ,
             ],
           },
 
@@ -1436,12 +1424,11 @@ Only works if role="admin" is sent in the request body.
                           ],
                           example: 'sunday',
                         },
-                        start: { type: 'string', example: '17:00' },
                       },
                     },
                     example: [
-                      { day: 'sunday', start: '17:00' },
-                      { day: 'tuesday', start: '18:00' },
+                       'sunday',
+                       'tuesday',
                     ],
                   },
                   // Days: {
@@ -1450,13 +1437,20 @@ Only works if role="admin" is sent in the request body.
                   //   example: ['sunday', 'tuesday'],
                   // },
 
-                  fromSurah: { type: 'string', example: 'Al-Fatihah' },
-                  toSurah: { type: 'string', example: 'Al-Baqarah' },
+                  targetParts: {
+                    type: 'object',
+                    properties: {
+                      fromSurah: { type: 'string', example: 'Al-Fatihah' },
+                      fromAyah: { type: 'number', example: 1 },
+                      toSurah: { type: 'string', example: 'An-Naba' },
+                      toAyah: { type: 'number', example: 40 },
+                    },
+                  },
 
                   pagesPerSession: { type: 'number', example: 1 },
                   totalPages: { type: 'number', example: 20 },
 
-                  teacher: { type: 'string', example: '68fdeb64c53906d3a283b8bf' },
+                //  teacher: { type: 'string', example: '68fdeb64c53906d3a283b8bf' },
                   trialSession: { type: 'boolean', example: true },
                 },
                 required: ['goal', 'planName', 'fromSurah', 'toSurah'],
@@ -1639,12 +1633,11 @@ Requires Firebase authentication.
                           ],
                           example: 'sunday',
                         },
-                        start: { type: 'string', example: '17:00' },
                       },
                     },
-                    example: [
-                      { day: 'sunday', start: '17:00' },
-                      { day: 'tuesday', start: '18:00' },
+                     example: [
+                       'sunday',
+                       'tuesday',
                     ],
                   },
                   teacherGender: {
@@ -1677,7 +1670,7 @@ Requires Firebase authentication.
 
                   pagesPerSession: { type: 'number', example: 0.25 },
 
-                  assignedTeacher: { type: 'string', example: '68fe72e608a6a18c0ec78d56' },
+                  //assignedTeacher: { type: 'string', example: '68fe72e608a6a18c0ec78d56' },
                   trialSession: { type: 'boolean', example: true },
                 },
                 required: [
@@ -1861,12 +1854,11 @@ Requires Firebase authentication.
                           ],
                           example: 'sunday',
                         },
-                        start: { type: 'string', example: '17:00' },
                       },
                     },
                     example: [
-                      { day: 'sunday', start: '17:00' },
-                      { day: 'tuesday', start: '18:00' },
+                       'sunday',
+                       'tuesday',
                     ],
                   },
                   memorizationRange: {
@@ -1897,7 +1889,7 @@ Requires Firebase authentication.
                     example: 'weekly',
                   },
 
-                  assignedTeacher: { type: 'string', example: '68fe72e608a6a18c0ec78d56' },
+                 // assignedTeacher: { type: 'string', example: '68fe72e608a6a18c0ec78d56' },
                   trialSession: { type: 'boolean', example: true },
                 },
                 required: [
